@@ -12,3 +12,7 @@ def register(source: Source) -> Source:
     """Add a source instance to REGISTRY under its name."""
     REGISTRY[source.name] = source
     return source
+
+
+# Importing the modules registers the sources (kept at the bottom: they import `register`).
+from . import himalayas, jobicy, remoteok, workingnomads  # noqa: E402,F401
