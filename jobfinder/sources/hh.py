@@ -22,6 +22,7 @@ VACANCY_URL = "https://hh.ru/vacancy/{id}"
 # category «Информационные технологии» of https://api.hh.ru/professional_roles (fetched 2026-11-22)
 IT_ROLES = ("10", "157", "12", "156", "150", "36", "125", "165", "34", "160", "104", "25", "116",
             "155", "112", "164", "73", "96", "107", "113", "114", "148", "121", "126", "124")
+HH_USER_AGENT = "job-finder/1.0"  # hh API rejects browser UAs (bad_user_agent)
 STATE_ID = "HH-Lux-InitialState"
 STATE_PATH = ("vacancySearchResult", "vacancies")  # key path inside the embedded state (site pages)
 DESCRIPTION_SELECTOR = '[data-qa="vacancy-description"]'
@@ -69,6 +70,22 @@ def _seniority(title: str, experience) -> str | None:
     return _EXPERIENCE.get(str(experience))
 
 
+def _api_remote(item: dict) -> bool:
+    sched = item.get("schedule")
+    if isinstance(sched, dict) and sched.get("id") == "remote":
+        return True
+    formats = item.get("work_format")
+    return isinstance(formats, list) and any(isinstance(f, dict) and f.get("id") == "REMOTE" for f in formats)
+
+
+def _page_remote(item: dict) -> bool:
+    formats = item.get("workFormats")
+    if not isinstance(formats, list):
+        return item.get("@workSchedule") == "remote"
+    return any("REMOTE" in (f.get("workFormatsElement") or []) for f in formats
+               if isinstance(f, dict) and isinstance(f.get("workFormatsElement"), list))
+
+
 def _name(node) -> str | None:
     value = node.get("name") if isinstance(node, dict) else None
     return str(value) if value else None
@@ -84,7 +101,7 @@ class Hh(Source):
         if "vacancyId" in item:
             return self._from_page(item)
         raw_id, title = item.get("id"), item.get("name")
-        if raw_id is None or not title:
+        if raw_id is None or not title or not _api_remote(item):
             return None
         snippet = item.get("snippet") if isinstance(item.get("snippet"), dict) else {}
         preview = " ".join(_HIGHLIGHT.sub("", str(snippet[k])) for k in ("requirement", "responsibility")
@@ -100,7 +117,7 @@ class Hh(Source):
 
     def _from_page(self, item: dict) -> Job | None:
         title = item.get("name")
-        if not title:
+        if not title or not _page_remote(item):
             return None
         comp = item.get("compensation") if isinstance(item.get("compensation"), dict) else {}
         pub = item.get("publicationTime")
@@ -160,7 +177,7 @@ class Hh(Source):
 
     def fetch(self, client: PoliteClient, known: set[str], wants, settings: dict) -> list[Job]:
         token = str(settings.get("hh_token") or "").strip()
-        headers = {"Authorization": f"Bearer {token}"} if token else None
+        headers = {"Authorization": f"Bearer {token}", "HH-User-Agent": HH_USER_AGENT} if token else None
         seen: set[str] = set()
 
         def page(n: int) -> list[dict]:

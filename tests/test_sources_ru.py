@@ -120,8 +120,10 @@ def test_hh_api_mapping():
 
 def test_hh_fetch_with_token_builds_api_urls():
     seen = []
+    reqs = []
 
     def h(req):
+        reqs.append(req)
         seen.append((req.url.host, req.url.path, req.url.params.multi_items(), req.headers.get("authorization")))
         if req.url.path == "/vacancies":
             items = [API_ITEM, {**API_ITEM, "id": "124", "alternate_url": "https://hh.ru/vacancy/124"}]
@@ -132,6 +134,7 @@ def test_hh_fetch_with_token_builds_api_urls():
     jobs = hh.SOURCE.fetch(client(h), {"124"}, lambda j: j.source_id == "123",
                            {"hh_token": "TOK", "max_pages": 3})
     assert all(s[0] == "api.hh.ru" and s[3] == "Bearer TOK" for s in seen)
+    assert all(r.headers.get("hh-user-agent") == "job-finder/1.0" for r in reqs)
     host, path, params, _ = seen[0]
     p = dict(params)
     assert path == "/vacancies" and p["schedule"] == "remote" and p["per_page"] == "100"
@@ -308,3 +311,28 @@ def test_getmatch_fetch_params_and_paging():
     assert seen[0] == {"pa": "all", "limit": "100", "offset": "0"}
     assert seen[1]["offset"] == "100" and len(seen) == 2
     assert jobs and all(j.work_format == "remote" for j in jobs)
+
+
+# --- per-item remote cut ---
+
+def test_hh_page_non_remote_dropped():
+    item = hh.parse_payload(text("hh_search.html"))[0]
+    assert hh.SOURCE.parse_item(item) is not None
+    office = {**item, "workFormats": [{"workFormatsElement": ["ON_SITE"]}]}
+    assert hh.SOURCE.parse_item(office) is None
+    hybrid = {**item, "workFormats": [{"workFormatsElement": ["REMOTE", "HYBRID"]}]}
+    assert hh.SOURCE.parse_item(hybrid) is not None
+
+
+def test_hh_api_non_remote_dropped():
+    assert hh.SOURCE.parse_item(API_ITEM) is not None
+    assert hh.SOURCE.parse_item({**API_ITEM, "schedule": {"id": "fullDay"}}) is None
+    assert hh.SOURCE.parse_item({**API_ITEM, "schedule": {"id": "fullDay"},
+                                 "work_format": [{"id": "REMOTE"}]}) is not None
+
+
+def test_habr_non_remote_dropped():
+    item = habr.parse_payload(payload(habr))[0]
+    assert habr.SOURCE.parse_item(item) is not None
+    assert habr.SOURCE.parse_item({**item, "remoteWork": False}) is None
+    assert habr.SOURCE.parse_item({k: v for k, v in item.items() if k != "remoteWork"}) is None

@@ -39,7 +39,8 @@ class Habr(Source):
 
     def parse_item(self, item: dict) -> Job | None:
         href, title = item.get("href"), item.get("title")
-        if not href or not title or item.get("id") is None or item.get("archived"):
+        if not href or not title or item.get("id") is None or item.get("archived") \
+                or item.get("remoteWork") is not True:
             return None
         sal = item.get("salary") if isinstance(item.get("salary"), dict) else {}
         lo, hi = _amount(sal.get("from")), _amount(sal.get("to"))
