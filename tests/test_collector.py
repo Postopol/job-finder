@@ -141,3 +141,48 @@ def test_concurrent_collect_returns_empty(conn):
     finally:
         collector._lock.release()
     assert len(run(conn, {"g": Fixed("g", [])})) == 1
+
+
+def test_settings_persisted_after_upserts(conn, monkeypatch):
+    from jobfinder import db as dbm
+    orig = dbm.upsert_job
+    seen = []
+
+    def spy(c, job, reason, now):
+        seen.append(get_setting(c, "hn_last_story"))
+        return orig(c, job, reason, now)
+
+    monkeypatch.setattr(collector.db, "upsert_job", spy)
+
+    class Mut(Fixed):
+        def fetch(self, client, known, wants, settings):
+            settings["hn_last_story"] = "123"
+            return [mk(source="m")]
+
+    run(conn, {"m": Mut("m", [])})
+    assert seen == [None]
+    assert get_setting(conn, "hn_last_story") == "123"
+
+
+def test_per_job_failure_isolated(conn, monkeypatch):
+    orig = collector.db.upsert_job
+
+    def flaky(c, job, reason, now):
+        if job.source_id == "1":
+            raise RuntimeError("x")
+        return orig(c, job, reason, now)
+
+    monkeypatch.setattr(collector.db, "upsert_job", flaky)
+    res = run(conn, {"s1": Fixed("s1", [mk(), mk(source_id="2")])})
+    assert res[0].ok and res[0].skipped == 1 and res[0].new == 1
+    assert conn.execute("SELECT COUNT(*) FROM postings").fetchone()[0] == 1
+
+
+def test_close_failure_does_not_break_run(conn):
+    class Bad(FakeClient):
+        def close(self):
+            raise OSError("x")
+
+    res = collect(conn, sources={"g": Fixed("g", [])}, client_factory=Bad)
+    assert res[0].ok
+    assert last_runs(conn)["g"]["finished_at"]

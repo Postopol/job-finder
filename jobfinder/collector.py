@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -14,6 +15,7 @@ from .normalize import normalize_job
 from .sources import REGISTRY
 from .sources.base import Source
 
+log = logging.getLogger(__name__)
 _lock = threading.Lock()
 
 
@@ -80,22 +82,30 @@ def _run_one(conn, source: Source, name: str, now_fn, client_factory) -> RunResu
             return _prepare(probe, cfg) is None
 
         jobs = source.fetch(client, db.known_source_ids(conn, name), wants, settings)
-        for key, value in settings.items():
-            if key not in before or before[key] != value:
-                db.set_setting(conn, key, value)
         fetched = len(jobs)
         for job in jobs:
             if not job.title or not job.url:
                 skipped += 1
                 continue
-            reason = _prepare(job, cfg)
-            _, is_new = db.upsert_job(conn, job, reason, now_fn())
+            try:
+                reason = _prepare(job, cfg)
+                _, is_new = db.upsert_job(conn, job, reason, now_fn())
+            except Exception:
+                log.warning("%s: не удалось сохранить вакансию %s", name, job.source_id, exc_info=True)
+                skipped += 1
+                continue
             new += is_new
+        for key, value in settings.items():
+            if key not in before or before[key] != value:
+                db.set_setting(conn, key, value)
     except Exception as exc:
         error = _error_text(exc)
     finally:
         if client is not None:
             requests = getattr(client, "requests", 0)
-            client.close()
+            try:
+                client.close()
+            except Exception:
+                log.warning("%s: ошибка закрытия клиента", name, exc_info=True)
     db.finish_run(conn, run_id, error is None, fetched, new, error, now_fn(), skipped=skipped)
     return RunResult(name, error is None, fetched, new, skipped, requests, error)
