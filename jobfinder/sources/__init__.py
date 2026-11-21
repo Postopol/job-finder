@@ -15,4 +15,4 @@ def register(source: Source) -> Source:
 
 
 # Importing the modules registers the sources (kept at the bottom: they import `register`).
-from . import arc, himalayas, hirify, hn, jobicy, remotefirst, remoteok, rocketship, workingnomads, wwr  # noqa: E402,F401
+from . import arc, getmatch, habr, hh, himalayas, hirify, hn, jobicy, remotefirst, remoteok, rocketship, workingnomads, wwr  # noqa: E402,F401

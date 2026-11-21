@@ -1,0 +1,1017 @@
+{
+ "list": [
+  {
+   "id": 1000169259,
+   "href": "/vacancies/1000169259",
+   "title": "Data Analyst / Data Engineer (LLM/AI, Data)",
+   "isMarked": true,
+   "remoteWork": true,
+   "salaryQualification": {
+    "title": "Старший (Senior)",
+    "href": "/vacancies?qid=5"
+   },
+   "publishedDate": {
+    "date": "2026-11-21T23:30:22+03:00",
+    "title": "21 ноября"
+   },
+   "location": null,
+   "company": {
+    "id": 1000119306,
+    "alias_name": "top-selection",
+    "href": "/companies/top-selection",
+    "title": "Top Selection",
+    "accredited": false,
+    "logo": {
+     "src": "https://habrastorage.org/getpro/moikrug/uploads/company/100/008/086/9/logo/medium_471913a34c9e1fd546aecd2d816485c8.png"
+    },
+    "rating": null
+   },
+   "employment": "full_time",
+   "salary": {
+    "from": 240000,
+    "to": 250000,
+    "currency": "rur",
+    "formatted": "от 240 000 до 250 000 ₽"
+   },
+   "divisions": [
+    {
+     "title": "Инженер по данным",
+     "href": "/vacancies/spec/analytics/data_engineer"
+    }
+   ],
+   "skills": [
+    {
+     "title": "Python",
+     "href": "/vacancies/programmist_python"
+    },
+    {
+     "title": "SQL",
+     "href": "/vacancies/programmist_sql"
+    },
+    {
+     "title": "ETL",
+     "href": "/vacancies/razrabotchik_etl"
+    },
+    {
+     "title": "PostgreSQL",
+     "href": "/vacancies/skills/postgresql"
+    },
+    {
+     "title": "Объектное хранилище S3",
+     "href": "/vacancies/skills/simple-storage-service"
+    },
+    {
+     "title": "Greenplum",
+     "href": "/vacancies/skills/greenplum"
+    },
+    {
+     "title": "Oracle",
+     "href": "/vacancies/skills/oracle"
+    }
+   ],
+   "media": null,
+   "locations": null,
+   "favorite": false,
+   "archived": false,
+   "hidden": false,
+   "can_edit": false,
+   "userVacancyBanHref": "/api/frontend/user_vacancy_bans",
+   "quickResponseHref": "/api/frontend/quick_responses",
+   "qualification": "Senior",
+   "externalLink": null,
+   "predictedSalary": null,
+   "response": {
+    "kind": "guest"
+   },
+   "hasPublishedCBP": true,
+   "color": "#001C66"
+  },
+  {
+   "id": 1000169258,
+   "href": "/vacancies/1000169258",
+   "title": "QAA на Java",
+   "isMarked": true,
+   "remoteWork": true,
+   "salaryQualification": null,
+   "publishedDate": {
+    "date": "2026-11-21T23:27:09+03:00",
+    "title": "21 ноября"
+   },
+   "location": null,
+   "company": {
+    "id": 1000119306,
+    "alias_name": "top-selection",
+    "href": "/companies/top-selection",
+    "title": "Top Selection",
+    "accredited": false,
+    "logo": {
+     "src": "https://habrastorage.org/getpro/moikrug/uploads/company/100/008/086/9/logo/medium_471913a34c9e1fd546aecd2d816485c8.png"
+    },
+    "rating": null
+   },
+   "employment": "full_time",
+   "salary": {
+    "from": 180000,
+    "to": 190000,
+    "currency": "rur",
+    "formatted": "от 180 000 до 190 000 ₽"
+   },
+   "divisions": [
+    {
+     "title": "Инженер по обеспечению качества",
+     "href": "/vacancies/spec/testing/qa_engineer"
+    }
+   ],
+   "skills": [
+    {
+     "title": "Java",
+     "href": "/vacancies/java_developer"
+    },
+    {
+     "title": "Selenide",
+     "href": "/vacancies/skills/selenide"
+    },
+    {
+     "title": "Postman",
+     "href": "/vacancies/skills/postman"
+    },
+    {
+     "title": "GitLab",
+     "href": "/vacancies/skills/gitlab"
+    },
+    {
+     "title": "PostgreSQL",
+     "href": "/vacancies/skills/postgresql"
+    },
+    {
+     "title": "Docker",
+     "href": "/vacancies/skills/docker"
+    },
+    {
+     "title": "Kubernetes",
+     "href": "/vacancies/skills/kubernetes"
+    }
+   ],
+   "media": null,
+   "locations": null,
+   "favorite": false,
+   "archived": false,
+   "hidden": false,
+   "can_edit": false,
+   "userVacancyBanHref": "/api/frontend/user_vacancy_bans",
+   "quickResponseHref": "/api/frontend/quick_responses",
+   "qualification": null,
+   "externalLink": null,
+   "predictedSalary": null,
+   "response": {
+    "kind": "guest"
+   },
+   "hasPublishedCBP": true,
+   "color": "#001C66"
+  },
+  {
+   "id": 1000169474,
+   "href": "/vacancies/1000169474",
+   "title": "Senior System Analyst ",
+   "isMarked": true,
+   "remoteWork": true,
+   "salaryQualification": {
+    "title": "Старший (Senior)",
+    "href": "/vacancies?qid=5"
+   },
+   "publishedDate": {
+    "date": "2026-11-21T22:27:10+03:00",
+    "title": "21 ноября"
+   },
+   "location": null,
+   "company": {
+    "id": 1000119306,
+    "alias_name": "top-selection",
+    "href": "/companies/top-selection",
+    "title": "Top Selection",
+    "accredited": false,
+    "logo": {
+     "src": "https://habrastorage.org/getpro/moikrug/uploads/company/100/008/086/9/logo/medium_471913a34c9e1fd546aecd2d816485c8.png"
+    },
+    "rating": null
+   },
+   "employment": "full_time",
+   "salary": {
+    "from": 220000,
+    "to": 250000,
+    "currency": "rur",
+    "formatted": "от 220 000 до 250 000 ₽"
+   },
+   "divisions": [
+    {
+     "title": "Системный аналитик",
+     "href": "/vacancies/spec/analytics/systems_analyst"
+    }
+   ],
+   "skills": [
+    {
+     "title": "SQL",
+     "href": "/vacancies/programmist_sql"
+    },
+    {
+     "title": "RESTful API",
+     "href": "/vacancies/skills/restful-api"
+    },
+    {
+     "title": "UML",
+     "href": "/vacancies/skills/uml"
+    },
+    {
+     "title": "BPMN",
+     "href": "/vacancies/skills/bpmn"
+    },
+    {
+     "title": "Apache Kafka",
+     "href": "/vacancies/skills/kafka"
+    },
+    {
+     "title": "Postman",
+     "href": "/vacancies/skills/postman"
+    },
+    {
+     "title": "PostgreSQL",
+     "href": "/vacancies/skills/postgresql"
+    },
+    {
+     "title": "Redis",
+     "href": "/vacancies/skills/redis"
+    },
+    {
+     "title": "REST",
+     "href": "/vacancies/skills/rest"
+    },
+    {
+     "title": "MongoDB",
+     "href": "/vacancies/skills/mongodb"
+    }
+   ],
+   "media": null,
+   "locations": null,
+   "favorite": false,
+   "archived": false,
+   "hidden": false,
+   "can_edit": false,
+   "userVacancyBanHref": "/api/frontend/user_vacancy_bans",
+   "quickResponseHref": "/api/frontend/quick_responses",
+   "qualification": "Senior",
+   "externalLink": null,
+   "predictedSalary": null,
+   "response": {
+    "kind": "guest"
+   },
+   "hasPublishedCBP": true,
+   "color": "#001C66"
+  },
+  {
+   "id": 1000169473,
+   "href": "/vacancies/1000169473",
+   "title": "Системный аналитик (Senior)",
+   "isMarked": true,
+   "remoteWork": true,
+   "salaryQualification": {
+    "title": "Старший (Senior)",
+    "href": "/vacancies?qid=5"
+   },
+   "publishedDate": {
+    "date": "2026-11-21T22:27:10+03:00",
+    "title": "21 ноября"
+   },
+   "location": null,
+   "company": {
+    "id": 1000118472,
+    "alias_name": "loodsen",
+    "href": "/companies/loodsen",
+    "title": "ИТ-компания «Лоция»",
+    "accredited": true,
+    "logo": {
+     "src": "https://habrastorage.org/getpro/moikrug/uploads/company/100/008/003/5/logo/medium_143d6a25cf35969705921fbd915ff6d1.jpg"
+    },
+    "rating": null
+   },
+   "employment": "full_time",
+   "salary": {
+    "from": null,
+    "to": null,
+    "currency": null,
+    "formatted": ""
+   },
+   "divisions": [
+    {
+     "title": "Системный аналитик",
+     "href": "/vacancies/spec/analytics/systems_analyst"
+    }
+   ],
+   "skills": [
+    {
+     "title": "Системный анализ",
+     "href": "/vacancies/skills/sistemnyy-analiz"
+    },
+    {
+     "title": "Apache Kafka",
+     "href": "/vacancies/skills/kafka"
+    },
+    {
+     "title": "PostgreSQL",
+     "href": "/vacancies/skills/postgresql"
+    }
+   ],
+   "media": null,
+   "locations": [
+    {
+     "title": "Москва",
+     "href": "/vacancies?city_id=678"
+    }
+   ],
+   "favorite": false,
+   "archived": false,
+   "hidden": false,
+   "can_edit": false,
+   "userVacancyBanHref": "/api/frontend/user_vacancy_bans",
+   "quickResponseHref": "/api/frontend/quick_responses",
+   "qualification": "Senior",
+   "externalLink": null,
+   "predictedSalary": {
+    "from": 282000,
+    "to": 359000,
+    "currency": "rur",
+    "formatted": "от 282 000 до 359 000 ₽"
+   },
+   "response": {
+    "kind": "guest"
+   },
+   "hasPublishedCBP": false,
+   "color": null
+  },
+  {
+   "id": 1000169472,
+   "href": "/vacancies/1000169472",
+   "title": "Старший руководитель проектов",
+   "isMarked": true,
+   "remoteWork": true,
+   "salaryQualification": {
+    "title": "Старший (Senior)",
+    "href": "/vacancies?qid=5"
+   },
+   "publishedDate": {
+    "date": "2026-11-21T22:27:10+03:00",
+    "title": "21 ноября"
+   },
+   "location": null,
+   "company": {
+    "id": 1000118472,
+    "alias_name": "loodsen",
+    "href": "/companies/loodsen",
+    "title": "ИТ-компания «Лоция»",
+    "accredited": true,
+    "logo": {
+     "src": "https://habrastorage.org/getpro/moikrug/uploads/company/100/008/003/5/logo/medium_143d6a25cf35969705921fbd915ff6d1.jpg"
+    },
+    "rating": null
+   },
+   "employment": "full_time",
+   "salary": {
+    "from": null,
+    "to": null,
+    "currency": null,
+    "formatted": ""
+   },
+   "divisions": [
+    {
+     "title": "Менеджер проекта",
+     "href": "/vacancies/spec/management/project_manager"
+    }
+   ],
+   "skills": [
+    {
+     "title": "Управление проектами",
+     "href": "/vacancies/skills/upravlenie-proektami"
+    },
+    {
+     "title": "Оптимизация бизнес-процессов",
+     "href": "/vacancies/skills/optimizatsiya-biznes-protsessov"
+    },
+    {
+     "title": "Проектное планирование",
+     "href": "/vacancies/skills/proektnoe-planirovanie"
+    },
+    {
+     "title": "Бюджетирование проектов",
+     "href": "/vacancies/skills/byudzhetirovanie-proektov"
+    },
+    {
+     "title": "Планирование",
+     "href": "/vacancies/skills/planirovanie"
+    }
+   ],
+   "media": null,
+   "locations": [
+    {
+     "title": "Москва",
+     "href": "/vacancies?city_id=678"
+    }
+   ],
+   "favorite": false,
+   "archived": false,
+   "hidden": false,
+   "can_edit": false,
+   "userVacancyBanHref": "/api/frontend/user_vacancy_bans",
+   "quickResponseHref": "/api/frontend/quick_responses",
+   "qualification": "Senior",
+   "externalLink": null,
+   "predictedSalary": {
+    "from": 214000,
+    "to": 361000,
+    "currency": "rur",
+    "formatted": "от 214 000 до 361 000 ₽"
+   },
+   "response": {
+    "kind": "guest"
+   },
+   "hasPublishedCBP": false,
+   "color": null
+  },
+  {
+   "id": 1000168504,
+   "href": "/vacancies/1000168504",
+   "title": "Менеджер по развитию бизнеса (Сибирь)",
+   "isMarked": true,
+   "remoteWork": true,
+   "salaryQualification": {
+    "title": "Старший (Senior)",
+    "href": "/vacancies?qid=5"
+   },
+   "publishedDate": {
+    "date": "2026-11-21T20:27:17+03:00",
+    "title": "21 ноября"
+   },
+   "location": null,
+   "company": {
+    "id": 1000086141,
+    "alias_name": "ibs",
+    "href": "/companies/ibs",
+    "title": "IBS",
+    "accredited": true,
+    "logo": {
+     "src": "https://habrastorage.org/getpro/moikrug/uploads/company/100/004/770/4/logo/medium_6d05479a9e2f4fc34b229cfd2936b50a.png"
+    },
+    "rating": {
+     "title": "Средняя оценка компании в 2025 году",
+     "value": "4.02",
+     "href": "/companies/ibs/scores/2025"
+    }
+   },
+   "employment": "full_time",
+   "salary": {
+    "from": null,
+    "to": null,
+    "currency": null,
+    "formatted": ""
+   },
+   "divisions": [
+    {
+     "title": "Менеджер по продажам",
+     "href": "/vacancies/spec/sales/sales_manager"
+    }
+   ],
+   "skills": [
+    {
+     "title": "B2B",
+     "href": "/vacancies/skills/b2b"
+    },
+    {
+     "title": "Продажи",
+     "href": "/vacancies/skills/prodazhi"
+    },
+    {
+     "title": "Развитие бизнеса",
+     "href": "/vacancies/skills/razvitie-biznesa"
+    }
+   ],
+   "media": null,
+   "locations": [
+    {
+     "title": "Новосибирск",
+     "href": "/vacancies?city_id=717"
+    }
+   ],
+   "favorite": false,
+   "archived": false,
+   "hidden": false,
+   "can_edit": false,
+   "userVacancyBanHref": "/api/frontend/user_vacancy_bans",
+   "quickResponseHref": "/api/frontend/quick_responses",
+   "qualification": "Senior",
+   "externalLink": null,
+   "predictedSalary": null,
+   "response": {
+    "kind": "guest"
+   },
+   "hasPublishedCBP": true,
+   "color": "#3525D4"
+  },
+  {
+   "id": 1000168501,
+   "href": "/vacancies/1000168501",
+   "title": "Ресерчер",
+   "isMarked": true,
+   "remoteWork": true,
+   "salaryQualification": {
+    "title": "Младший (Junior)",
+    "href": "/vacancies?qid=3"
+   },
+   "publishedDate": {
+    "date": "2026-11-21T20:27:04+03:00",
+    "title": "21 ноября"
+   },
+   "location": null,
+   "company": {
+    "id": 1000095773,
+    "alias_name": "vital",
+    "href": "/companies/vital",
+    "title": "Vital Partners",
+    "accredited": false,
+    "logo": {
+     "src": "https://habrastorage.org/getpro/moikrug/uploads/company/100/005/733/6/logo/medium_79ee34c04994b33f9e32904084e95151.png"
+    },
+    "rating": null
+   },
+   "employment": "part_time",
+   "salary": {
+    "from": null,
+    "to": null,
+    "currency": null,
+    "formatted": ""
+   },
+   "divisions": [
+    {
+     "title": "Ресечер",
+     "href": "/vacancies/spec/hr/researcher"
+    }
+   ],
+   "skills": [
+    {
+     "title": "Английский язык",
+     "href": "/vacancies/skills/angliyskiy-yazyk"
+    }
+   ],
+   "media": null,
+   "locations": null,
+   "favorite": false,
+   "archived": false,
+   "hidden": false,
+   "can_edit": false,
+   "userVacancyBanHref": "/api/frontend/user_vacancy_bans",
+   "quickResponseHref": "/api/frontend/quick_responses",
+   "qualification": "Junior",
+   "externalLink": null,
+   "predictedSalary": null,
+   "response": {
+    "kind": "guest"
+   },
+   "hasPublishedCBP": false,
+   "color": null
+  },
+  {
+   "id": 1000168894,
+   "href": "/vacancies/1000168894",
+   "title": "Сетевой инженер / Кибербезопасность",
+   "isMarked": true,
+   "remoteWork": true,
+   "salaryQualification": {
+    "title": "Старший (Senior)",
+    "href": "/vacancies?qid=5"
+   },
+   "publishedDate": {
+    "date": "2026-11-21T17:27:03+03:00",
+    "title": "21 ноября"
+   },
+   "location": null,
+   "company": {
+    "id": 1000097321,
+    "alias_name": "yadro",
+    "href": "/companies/yadro",
+    "title": "YADRO",
+    "accredited": true,
+    "logo": {
+     "src": "https://habrastorage.org/getpro/moikrug/uploads/company/100/005/888/4/logo/medium_eb819572234e132167204b11e8f70dc8.png"
+    },
+    "rating": null
+   },
+   "employment": "full_time",
+   "salary": {
+    "from": null,
+    "to": null,
+    "currency": null,
+    "formatted": ""
+   },
+   "divisions": [
+    {
+     "title": "Инженер по безопасности",
+     "href": "/vacancies/spec/infosec/security_engineer"
+    }
+   ],
+   "skills": [
+    {
+     "title": "NGFW",
+     "href": "/vacancies/skills/ngfw"
+    },
+    {
+     "title": "Настройка оборудования Cisco",
+     "href": "/vacancies/skills/nastroyka-oborudovaniya-cisco-systems"
+    },
+    {
+     "title": "Mikrotik",
+     "href": "/vacancies/skills/mikrotik"
+    },
+    {
+     "title": "Linux",
+     "href": "/vacancies/skills/linux"
+    },
+    {
+     "title": "Настройка VPN",
+     "href": "/vacancies/skills/vpn"
+    },
+    {
+     "title": "BGP",
+     "href": "/vacancies/skills/bgp"
+    },
+    {
+     "title": "OSPF",
+     "href": "/vacancies/skills/ospf"
+    }
+   ],
+   "media": null,
+   "locations": [
+    {
+     "title": "Москва",
+     "href": "/vacancies?city_id=678"
+    }
+   ],
+   "favorite": false,
+   "archived": false,
+   "hidden": false,
+   "can_edit": false,
+   "userVacancyBanHref": "/api/frontend/user_vacancy_bans",
+   "quickResponseHref": "/api/frontend/quick_responses",
+   "qualification": "Senior",
+   "externalLink": null,
+   "predictedSalary": {
+    "from": 240000,
+    "to": 345000,
+    "currency": "rur",
+    "formatted": "от 240 000 до 345 000 ₽"
+   },
+   "response": {
+    "kind": "guest"
+   },
+   "hasPublishedCBP": true,
+   "color": "#0000FF"
+  },
+  {
+   "id": 1000169469,
+   "href": "/vacancies/1000169469",
+   "title": "Middle Golang Разработчик",
+   "isMarked": true,
+   "remoteWork": true,
+   "salaryQualification": {
+    "title": "Средний (Middle)",
+    "href": "/vacancies?qid=4"
+   },
+   "publishedDate": {
+    "date": "2026-11-21T17:27:03+03:00",
+    "title": "21 ноября"
+   },
+   "location": null,
+   "company": {
+    "id": 1000131036,
+    "alias_name": "basistech",
+    "href": "/companies/basistech",
+    "title": "Базис",
+    "accredited": true,
+    "logo": {
+     "src": "https://habrastorage.org/getpro/moikrug/uploads/company/100/009/259/9/logo/medium_1f238124c5f4f2b6dfbc1a19bdc572c3.png"
+    },
+    "rating": null
+   },
+   "employment": "full_time",
+   "salary": {
+    "from": null,
+    "to": null,
+    "currency": null,
+    "formatted": ""
+   },
+   "divisions": [
+    {
+     "title": "Бэкенд разработчик",
+     "href": "/vacancies/spec/development/backend"
+    }
+   ],
+   "skills": [
+    {
+     "title": "Golang",
+     "href": "/vacancies/skills/golang"
+    },
+    {
+     "title": "PostgreSQL",
+     "href": "/vacancies/skills/postgresql"
+    },
+    {
+     "title": "SQL",
+     "href": "/vacancies/programmist_sql"
+    },
+    {
+     "title": "Базы данных",
+     "href": "/vacancies/skills/bazy-dannyh"
+    }
+   ],
+   "media": null,
+   "locations": [
+    {
+     "title": "Москва",
+     "href": "/vacancies?city_id=678"
+    }
+   ],
+   "favorite": false,
+   "archived": false,
+   "hidden": false,
+   "can_edit": false,
+   "userVacancyBanHref": "/api/frontend/user_vacancy_bans",
+   "quickResponseHref": "/api/frontend/quick_responses",
+   "qualification": "Middle",
+   "externalLink": null,
+   "predictedSalary": {
+    "from": 230000,
+    "to": 321000,
+    "currency": "rur",
+    "formatted": "от 230 000 до 321 000 ₽"
+   },
+   "response": {
+    "kind": "guest"
+   },
+   "hasPublishedCBP": false,
+   "color": null
+  },
+  {
+   "id": 1000169247,
+   "href": "/vacancies/1000169247",
+   "title": "Архитектор-аналитик КХД ",
+   "isMarked": true,
+   "remoteWork": true,
+   "salaryQualification": {
+    "title": "Ведущий (Lead)",
+    "href": "/vacancies?qid=6"
+   },
+   "publishedDate": {
+    "date": "2026-11-21T16:41:59+03:00",
+    "title": "21 ноября"
+   },
+   "location": null,
+   "company": {
+    "id": 1000119306,
+    "alias_name": "top-selection",
+    "href": "/companies/top-selection",
+    "title": "Top Selection",
+    "accredited": false,
+    "logo": {
+     "src": "https://habrastorage.org/getpro/moikrug/uploads/company/100/008/086/9/logo/medium_471913a34c9e1fd546aecd2d816485c8.png"
+    },
+    "rating": null
+   },
+   "employment": "full_time",
+   "salary": {
+    "from": 320000,
+    "to": 340000,
+    "currency": "rur",
+    "formatted": "от 320 000 до 340 000 ₽"
+   },
+   "divisions": [
+    {
+     "title": "Разработка/Другое",
+     "href": "/vacancies/spec/development/development-other"
+    }
+   ],
+   "skills": [
+    {
+     "title": "DWH",
+     "href": "/vacancies/razrabotchik_dwh"
+    },
+    {
+     "title": "Базы данных",
+     "href": "/vacancies/skills/bazy-dannyh"
+    },
+    {
+     "title": "SQL",
+     "href": "/vacancies/programmist_sql"
+    },
+    {
+     "title": "Oracle",
+     "href": "/vacancies/skills/oracle"
+    },
+    {
+     "title": "PostgreSQL",
+     "href": "/vacancies/skills/postgresql"
+    },
+    {
+     "title": "Oracle PL/SQL",
+     "href": "/vacancies/skills/oracle-plsql"
+    },
+    {
+     "title": "ETL",
+     "href": "/vacancies/razrabotchik_etl"
+    }
+   ],
+   "media": null,
+   "locations": null,
+   "favorite": false,
+   "archived": false,
+   "hidden": false,
+   "can_edit": false,
+   "userVacancyBanHref": "/api/frontend/user_vacancy_bans",
+   "quickResponseHref": "/api/frontend/quick_responses",
+   "qualification": "Lead",
+   "externalLink": null,
+   "predictedSalary": null,
+   "response": {
+    "kind": "guest"
+   },
+   "hasPublishedCBP": true,
+   "color": "#001C66"
+  },
+  {
+   "id": 1000169457,
+   "href": "/vacancies/1000169457",
+   "title": "DevOps Senior ( AI )",
+   "isMarked": true,
+   "remoteWork": true,
+   "salaryQualification": {
+    "title": "Старший (Senior)",
+    "href": "/vacancies?qid=5"
+   },
+   "publishedDate": {
+    "date": "2026-11-21T16:27:31+03:00",
+    "title": "21 ноября"
+   },
+   "location": null,
+   "company": {
+    "id": 1000106277,
+    "alias_name": "jetlyn",
+    "href": "/companies/jetlyn",
+    "title": "Джетлин",
+    "accredited": true,
+    "logo": {
+     "src": "https://habrastorage.org/getpro/moikrug/uploads/company/100/006/784/0/logo/medium_4c88611c018b065f0cad34b848b033c5.png"
+    },
+    "rating": {
+     "title": "Средняя оценка компании в 2024 году",
+     "value": "4.79",
+     "href": "/companies/jetlyn/scores/2024"
+    }
+   },
+   "employment": "full_time",
+   "salary": {
+    "from": 200000,
+    "to": 270000,
+    "currency": "rur",
+    "formatted": "от 200 000 до 270 000 ₽"
+   },
+   "divisions": [
+    {
+     "title": "DevOps-инженер",
+     "href": "/vacancies/spec/administration/devops"
+    }
+   ],
+   "skills": [
+    {
+     "title": "Apache Kafka",
+     "href": "/vacancies/skills/kafka"
+    },
+    {
+     "title": "Yandex.Cloud",
+     "href": "/vacancies/skills/yandex-cloud"
+    },
+    {
+     "title": "Kubernetes",
+     "href": "/vacancies/skills/kubernetes"
+    },
+    {
+     "title": "PostgreSQL",
+     "href": "/vacancies/skills/postgresql"
+    },
+    {
+     "title": "CI/CD",
+     "href": "/vacancies/skills/ci-cd-methodologies"
+    }
+   ],
+   "media": null,
+   "locations": null,
+   "favorite": false,
+   "archived": false,
+   "hidden": false,
+   "can_edit": false,
+   "userVacancyBanHref": "/api/frontend/user_vacancy_bans",
+   "quickResponseHref": "/api/frontend/quick_responses",
+   "qualification": "Senior",
+   "externalLink": null,
+   "predictedSalary": null,
+   "response": {
+    "kind": "guest"
+   },
+   "hasPublishedCBP": true,
+   "color": "#12122A"
+  },
+  {
+   "id": 1000167935,
+   "href": "/vacancies/1000167935",
+   "title": "Oracle developer (+Vue+C#)",
+   "isMarked": true,
+   "remoteWork": true,
+   "salaryQualification": {
+    "title": "Средний (Middle)",
+    "href": "/vacancies?qid=4"
+   },
+   "publishedDate": {
+    "date": "2026-11-21T16:27:30+03:00",
+    "title": "21 ноября"
+   },
+   "location": null,
+   "company": {
+    "id": 170046178,
+    "alias_name": "smlab",
+    "href": "/companies/smlab",
+    "title": "SM Lab",
+    "accredited": true,
+    "logo": {
+     "src": "https://habrastorage.org/getpro/moikrug/uploads/company/170/007/741/logo/medium_97823adb689b9853f963b306bd348fbc.jpg"
+    },
+    "rating": {
+     "title": "Средняя оценка компании в 2025 году",
+     "value": "4.17",
+     "href": "/companies/smlab/scores/2025"
+    }
+   },
+   "employment": "full_time",
+   "salary": {
+    "from": null,
+    "to": null,
+    "currency": null,
+    "formatted": ""
+   },
+   "divisions": [
+    {
+     "title": "Разработчик баз данных",
+     "href": "/vacancies/spec/development/database_developer"
+    }
+   ],
+   "skills": [
+    {
+     "title": "Oracle",
+     "href": "/vacancies/skills/oracle"
+    },
+    {
+     "title": "Oracle PL/SQL",
+     "href": "/vacancies/skills/oracle-plsql"
+    },
+    {
+     "title": "C#",
+     "href": "/vacancies/programmist_c_sharp"
+    },
+    {
+     "title": "Vue.js",
+     "href": "/vacancies/skills/vue-js"
+    }
+   ],
+   "media": null,
+   "locations": [
+    {
+     "title": "Москва",
+     "href": "/vacancies?city_id=678"
+    }
+   ],
+   "favorite": false,
+   "archived": false,
+   "hidden": false,
+   "can_edit": false,
+   "userVacancyBanHref": "/api/frontend/user_vacancy_bans",
+   "quickResponseHref": "/api/frontend/quick_responses",
+   "qualification": "Middle",
+   "externalLink": null,
+   "predictedSalary": null,
+   "response": {
+    "kind": "guest"
+   },
+   "hasPublishedCBP": true,
+   "color": "#195FCE"
+  }
+ ],
+ "meta": {
+  "totalResults": 453,
+  "perPage": 50,
+  "currentPage": 1,
+  "totalPages": 10
+ }
+}

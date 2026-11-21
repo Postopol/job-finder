@@ -1,0 +1,1022 @@
+{
+ "meta": {
+  "total": 782,
+  "offset": 0,
+  "limit": 100
+ },
+ "offers": [
+  {
+   "published_at": "2026-11-21T13:10:17.558989",
+   "is_active": true,
+   "position": "C++ Engineer",
+   "language": "ru",
+   "type": "web_and_tg",
+   "id": 37324,
+   "offer_type": "vacancy",
+   "cover_letter_required": false,
+   "cover_letter_placeholder": null,
+   "source": "manual",
+   "incognito_publication": false,
+   "salary_description": "5 000 —‍ 7 000 $/‍мес на руки",
+   "salary_hidden": false,
+   "salary_display_from": 5000,
+   "salary_display_to": 7000,
+   "salary_currency": "USD",
+   "salary_taxes": "net",
+   "salary_is_total": false,
+   "salary_by_our_version": false,
+   "salary_hidden_variant": null,
+   "offer_description": "<b>Что делать:</b> Работать над core-инфраструктурой и минимизировать задержки на горячем пути, заниматься reverse engineering и превращать знание устройства биржи в преимущество по скорости, подключать новые биржи и масштабироваться на них.\n\n<b>О компании:</b> Wunder Fund занимается высокочастотным алгоритмическим трейдингом (HFT) с 2014 года. Торгует на биржах по всему миру, как классических, так и криптовалютных. Сейчас дневной оборот ~$8 млрд.",
+   "skills_objects": [
+    {
+     "name": "C++",
+     "slug": null,
+     "is_custom": true
+    },
+    {
+     "name": "Python",
+     "slug": null,
+     "is_custom": true
+    },
+    {
+     "name": "Linux",
+     "slug": null,
+     "is_custom": true
+    },
+    {
+     "name": "TCP",
+     "slug": null,
+     "is_custom": true
+    },
+    {
+     "name": "UDP",
+     "slug": null,
+     "is_custom": true
+    },
+    {
+     "name": "Reverse engineering",
+     "slug": null,
+     "is_custom": true
+    },
+    {
+     "name": "Low latency",
+     "slug": null,
+     "is_custom": true
+    }
+   ],
+   "url": "/vacancies/37324-c-engineer",
+   "description_html": null,
+   "english_level": null,
+   "location_requirements": [
+    {
+     "location_id": "_cu-world",
+     "format": "remote",
+     "exclude": false,
+     "ancestors": [
+      "_cu-world"
+     ],
+     "metros": [],
+     "city": "Весь мир",
+     "country": "Весь мир"
+    }
+   ],
+   "location_items": [
+    {
+     "label": "Весь мир",
+     "format": "remote",
+     "exclude": false
+    }
+   ],
+   "application": null,
+   "viewed": false,
+   "company": {
+    "id": null,
+    "name": "Wunder Fund",
+    "logotype": "48825890-9cec-46c2-8c1d-18e6673a37d8.png",
+    "url": "/companies/N0l4YmR8-wunder-fund"
+   }
+  },
+  {
+   "published_at": "2026-11-21T09:02:00.597407",
+   "is_active": true,
+   "position": "Data Scientist",
+   "language": "ru",
+   "type": "web_and_tg",
+   "id": 34888,
+   "offer_type": "vacancy",
+   "cover_letter_required": false,
+   "cover_letter_placeholder": "",
+   "source": "backoffice",
+   "incognito_publication": false,
+   "salary_description": "от 2 500 $/‍мес на руки",
+   "salary_hidden": true,
+   "salary_display_from": null,
+   "salary_display_to": null,
+   "salary_currency": null,
+   "salary_taxes": "net",
+   "salary_is_total": false,
+   "salary_by_our_version": false,
+   "salary_hidden_variant": null,
+   "offer_description": "<b>Что делать:</b> Анализировать большие массивы игровых данных CS2 и находить закономерности в поведении игроков, строить распределения, проводить статистический анализ и формулировать выводы на основе данных, разрабатывать, обучать и проводить валидацию ML-моделей для игровых сценариев.\n\n<b>О компании:</b> EX CORP. создают сервисы для геймеров. Продукты — CS․MONEY (маркетплейс скинов для CS и Dota2), SCOPE․GG (аналитический статистический сервис для CS), XPLAY․GG (тренировочные сервера CS), LVL․IO (B2B-решение для геймификации).",
+   "skills_objects": [
+    {
+     "name": "Machine Learning",
+     "slug": "machine learning",
+     "is_custom": false
+    },
+    {
+     "name": "CS2",
+     "slug": null,
+     "is_custom": true
+    }
+   ],
+   "url": "/vacancies/34888-data-scientist",
+   "description_html": null,
+   "english_level": null,
+   "location_requirements": [
+    {
+     "location_id": "_cu-world",
+     "format": "remote",
+     "exclude": false,
+     "ancestors": [
+      "_cu-world"
+     ],
+     "metros": [],
+     "city": "Весь мир",
+     "country": ""
+    }
+   ],
+   "location_items": [
+    {
+     "label": "Весь мир",
+     "format": "remote",
+     "exclude": false
+    }
+   ],
+   "application": null,
+   "viewed": false,
+   "company": {
+    "id": null,
+    "name": "EX CORP.",
+    "logotype": "e3a59bbb-b4c9-40e8-909a-fc8efc0258d7.png",
+    "url": "/companies/LBl50BQE-ex-corp"
+   }
+  },
+  {
+   "published_at": "2026-11-21T09:02:00.505781",
+   "is_active": true,
+   "position": "Senior Kotlin Developer в команду Atlas",
+   "language": "ru",
+   "type": "web_and_tg",
+   "id": 36926,
+   "offer_type": "vacancy",
+   "cover_letter_required": false,
+   "cover_letter_placeholder": null,
+   "source": "manual",
+   "incognito_publication": false,
+   "salary_description": "от 350 000 ₽/‍мес на руки",
+   "salary_hidden": true,
+   "salary_display_from": null,
+   "salary_display_to": null,
+   "salary_currency": null,
+   "salary_taxes": "net",
+   "salary_is_total": false,
+   "salary_by_our_version": false,
+   "salary_hidden_variant": null,
+   "offer_description": "<b>Что делать:</b> Разрабатывать и оптимизировать алгоритмы для бенчмарков и обработки данных, рефакторить код и повышать производительность сервисов, разрабатывать новые сервисы и расширять функциональность существующих.\n\n<b>О компании:</b> 2ГИС — продуктовая IT-компания, которая помогают людям жить в городе, а бизнесу — находить клиентов. Они делают карту со справочником и навигатор. Их сервис работает в городах России, Казахстана, ОАЭ и ещё семи стран. Каждый месяц их продукты используют миллионы пользователей.",
+   "skills_objects": [
+    {
+     "name": "Kotlin",
+     "slug": "kotlin",
+     "is_custom": false
+    },
+    {
+     "name": "Ktor",
+     "slug": "ktor",
+     "is_custom": false
+    },
+    {
+     "name": "Kafka",
+     "slug": "kafka",
+     "is_custom": false
+    },
+    {
+     "name": "PostgreSQL",
+     "slug": "postgresql",
+     "is_custom": false
+    },
+    {
+     "name": "ClickHouse",
+     "slug": "clickhouse",
+     "is_custom": false
+    },
+    {
+     "name": "Docker",
+     "slug": "docker",
+     "is_custom": false
+    },
+    {
+     "name": "Kubernetes",
+     "slug": "kubernetes",
+     "is_custom": false
+    }
+   ],
+   "url": "/vacancies/36926-senior-kotlin-developer-v-komandu-atlas",
+   "description_html": null,
+   "english_level": null,
+   "location_requirements": [
+    {
+     "location_id": "russia",
+     "format": "remote",
+     "exclude": false,
+     "ancestors": [
+      "russia",
+      "_cu-europe",
+      "_cu-emea",
+      "_cu-world"
+     ],
+     "metros": [],
+     "city": "",
+     "country": "Россия"
+    }
+   ],
+   "location_items": [
+    {
+     "label": "Россия",
+     "format": "remote",
+     "exclude": false
+    }
+   ],
+   "application": null,
+   "viewed": false,
+   "company": {
+    "id": null,
+    "name": "2ГИС",
+    "logotype": "549a17dc-3363-4bd7-a9e0-0b6a068a6f65.png",
+    "url": "/companies/y4vWxdQ3-2gis"
+   }
+  },
+  {
+   "published_at": "2026-11-21T09:02:00.395945",
+   "is_active": true,
+   "position": "Influence Marketing Manager",
+   "language": "ru",
+   "type": "web_and_tg",
+   "id": 36135,
+   "offer_type": "vacancy",
+   "cover_letter_required": false,
+   "cover_letter_placeholder": null,
+   "source": "manual",
+   "incognito_publication": false,
+   "salary_description": "от 1 500 $/‍мес на руки",
+   "salary_hidden": true,
+   "salary_display_from": null,
+   "salary_display_to": null,
+   "salary_currency": null,
+   "salary_taxes": "net",
+   "salary_is_total": false,
+   "salary_by_our_version": false,
+   "salary_hidden_variant": null,
+   "offer_description": "<b>Что делать:</b> Составлять брифы и ТЗ для интеграций, искать и отбирать зарубежных инфлюенсеров, вести переговоры и развивать базу контактов.\n\n<b>О компании:</b> EX CORP. создают сервисы для геймеров. Продукты — CS․MONEY (маркетплейс скинов для CS и Dota2), SCOPE․GG (аналитический статистический сервис для CS), XPLAY․GG (тренировочные сервера CS), LVL․IO (B2B-решение для геймификации).",
+   "skills_objects": [
+    {
+     "name": "Marketing",
+     "slug": "marketing",
+     "is_custom": false
+    }
+   ],
+   "url": "/vacancies/36135-influence-marketing-manager",
+   "description_html": null,
+   "english_level": {
+    "name": "B1 — Intermediate",
+    "vacancy_description": "Свободно общаетесь с коллегами о работе, если нет совсем сложных тем"
+   },
+   "location_requirements": [
+    {
+     "location_id": "_cu-world",
+     "format": "remote",
+     "exclude": false,
+     "ancestors": [
+      "_cu-world"
+     ],
+     "metros": [],
+     "city": "Весь мир",
+     "country": "Весь мир"
+    }
+   ],
+   "location_items": [
+    {
+     "label": "Весь мир",
+     "format": "remote",
+     "exclude": false
+    }
+   ],
+   "application": null,
+   "viewed": false,
+   "company": {
+    "id": null,
+    "name": "EX CORP.",
+    "logotype": "e3a59bbb-b4c9-40e8-909a-fc8efc0258d7.png",
+    "url": "/companies/LBl50BQE-ex-corp"
+   }
+  },
+  {
+   "published_at": "2026-11-21T09:02:00.162290",
+   "is_active": true,
+   "position": "Медиабайер (Тизерный трафик, Betting)",
+   "language": "ru",
+   "type": "only_web",
+   "id": 36344,
+   "offer_type": "vacancy",
+   "cover_letter_required": false,
+   "cover_letter_placeholder": null,
+   "source": "hh_import",
+   "incognito_publication": false,
+   "salary_description": "1 500 —‍ 3 000 $/‍мес на руки",
+   "salary_hidden": false,
+   "salary_display_from": 1500,
+   "salary_display_to": 3000,
+   "salary_currency": "USD",
+   "salary_taxes": "net",
+   "salary_is_total": false,
+   "salary_by_our_version": false,
+   "salary_hidden_variant": null,
+   "offer_description": "<b>Что делать:</b> Запускать и вести рекламные кампании в тизерных сетях, заливать трафик на букмекерские офферы по РФ, искать и тестировать рабочие связки.\n\n<b>О компании:</b> Лига Ставок (>3 млн. клиентов, топ-50 самых быстрорастущих компаний России, сейчас выходит на международный рынок) — высокотехнологичная компания, деятельность которой направлена на поддержку национального спорта и создание новой сферы спортивных развлечений. Компания развивает Flutter-комьюнити в России, а их мобильное приложение удостоено «Премии Рунета»-2019.",
+   "skills_objects": [],
+   "url": "/vacancies/36344-mediabaier-tizernyi-trafik-betting",
+   "description_html": null,
+   "english_level": null,
+   "location_requirements": [
+    {
+     "location_id": "moscow__mo__russia",
+     "format": "remote",
+     "exclude": false,
+     "ancestors": [
+      "moscow",
+      "mo__russia",
+      "russia",
+      "_cu-europe",
+      "_cu-emea",
+      "_cu-world"
+     ],
+     "metros": [
+      "Белорусская"
+     ],
+     "city": "Москва",
+     "country": "Россия"
+    }
+   ],
+   "location_items": [
+    {
+     "label": "Москва (Белорусская)",
+     "format": "remote",
+     "exclude": false
+    }
+   ],
+   "application": null,
+   "viewed": false,
+   "company": {
+    "id": null,
+    "name": "Лига Ставок",
+    "logotype": "783710f7-ea50-4b89-8b7f-e690835629b5.png",
+    "url": "/companies/WVQqDKve-liga-stavok"
+   }
+  },
+  {
+   "published_at": "2026-11-21T09:01:59.431402",
+   "is_active": true,
+   "position": "ML-инженер (AI Quality / Evaluation) в команду GigaChat",
+   "language": "ru",
+   "type": "only_web",
+   "id": 33826,
+   "offer_type": "vacancy",
+   "cover_letter_required": false,
+   "cover_letter_placeholder": "",
+   "source": "backoffice",
+   "incognito_publication": false,
+   "salary_description": "350 000 —‍ 600 000 ₽/‍мес на руки",
+   "salary_hidden": false,
+   "salary_display_from": 350000,
+   "salary_display_to": 600000,
+   "salary_currency": "RUB",
+   "salary_taxes": "net",
+   "salary_is_total": false,
+   "salary_by_our_version": false,
+   "salary_hidden_variant": null,
+   "offer_description": "<b>Что делать:</b> Развивать инфраструктуру и пайплайны замеров (Evaluation Harness), строить и масштабировать LLM-as-a-Judge, создавать целевые датасеты и анализировать данные.\n\n<b>О компании:</b> Сбербанк — крупнейший банк в России, Центральной и Восточной Европе, один из ведущих международных финансовых институтов.",
+   "skills_objects": [
+    {
+     "name": "Python",
+     "slug": "python",
+     "is_custom": false
+    },
+    {
+     "name": "Git",
+     "slug": "git",
+     "is_custom": false
+    },
+    {
+     "name": "CI/CD",
+     "slug": "ci/cd",
+     "is_custom": false
+    },
+    {
+     "name": "Bash",
+     "slug": "bash",
+     "is_custom": false
+    }
+   ],
+   "url": "/vacancies/33826-ml-inzhener-ai-quality-evaluation-v",
+   "description_html": null,
+   "english_level": null,
+   "location_requirements": [
+    {
+     "location_id": "russia",
+     "format": "remote",
+     "exclude": false,
+     "ancestors": [
+      "russia",
+      "_cu-europe",
+      "_cu-emea",
+      "_cu-world"
+     ],
+     "metros": [],
+     "city": "",
+     "country": "Россия"
+    }
+   ],
+   "location_items": [
+    {
+     "label": "Россия",
+     "format": "remote",
+     "exclude": false
+    }
+   ],
+   "application": null,
+   "viewed": false,
+   "company": {
+    "id": null,
+    "name": "Сбер",
+    "logotype": "8f5d6d49-bb76-4250-9aa9-267e36fc5273.png",
+    "url": "/companies/GNRXrNQz-sber"
+   }
+  },
+  {
+   "published_at": "2026-11-21T09:01:57.934239",
+   "is_active": true,
+   "position": "Главный продуктовый аналитик / Руководитель направления A/B-тестирования",
+   "language": "ru",
+   "type": "web_and_tg",
+   "id": 35435,
+   "offer_type": "vacancy",
+   "cover_letter_required": false,
+   "cover_letter_placeholder": null,
+   "source": "hh_import",
+   "incognito_publication": false,
+   "salary_description": "от 400 000 ₽/‍мес до налогов",
+   "salary_hidden": true,
+   "salary_display_from": null,
+   "salary_display_to": null,
+   "salary_currency": null,
+   "salary_taxes": "gross",
+   "salary_is_total": false,
+   "salary_by_our_version": false,
+   "salary_hidden_variant": null,
+   "offer_description": "<b>Что делать:</b> Обеспечивать сквозную реализацию и операционную устойчивость A/B-тестов, организовывать коммуникацию с бизнесом и согласование метрик, обобщать кейсы и формировать библиотеку решений.\n\n<b>О компании:</b> Альфа-Банк — крупнейший независимый частный банк в России, лучший работодатель России по версии hh․ru и Хабр. 30 лет подряд занимает ведущие позиции в сегментах банковского бизнеса. У них более 550 тысяч корпоративных клиентов и более 16 млн. физлиц.",
+   "skills_objects": [
+    {
+     "name": "SQL",
+     "slug": "sql",
+     "is_custom": false
+    },
+    {
+     "name": "Python",
+     "slug": "python",
+     "is_custom": false
+    },
+    {
+     "name": "QA",
+     "slug": "qa",
+     "is_custom": false
+    },
+    {
+     "name": "Power BI",
+     "slug": "power bi",
+     "is_custom": false
+    },
+    {
+     "name": "Tableau",
+     "slug": "tableau",
+     "is_custom": false
+    },
+    {
+     "name": "ETL",
+     "slug": "etl",
+     "is_custom": false
+    },
+    {
+     "name": "Apache Superset",
+     "slug": "apache superset",
+     "is_custom": false
+    },
+    {
+     "name": "Design",
+     "slug": "design",
+     "is_custom": false
+    },
+    {
+     "name": "BI",
+     "slug": "bi",
+     "is_custom": false
+    }
+   ],
+   "url": "/vacancies/35435-glavnyi-produktovyi-analitik-rukovoditel-napravleniia",
+   "description_html": null,
+   "english_level": null,
+   "location_requirements": [
+    {
+     "location_id": "moscow__mo__russia",
+     "format": "remote",
+     "exclude": false,
+     "ancestors": [
+      "moscow",
+      "mo__russia",
+      "russia",
+      "_cu-europe",
+      "_cu-emea",
+      "_cu-world"
+     ],
+     "metros": [],
+     "city": "Москва",
+     "country": "Россия"
+    }
+   ],
+   "location_items": [
+    {
+     "label": "Москва",
+     "format": "remote",
+     "exclude": false
+    }
+   ],
+   "application": null,
+   "viewed": false,
+   "company": {
+    "id": null,
+    "name": "Альфа-Банк",
+    "logotype": "7ce8fe6d-a30b-4650-b8da-ceb937fbf453.png",
+    "url": "/companies/N0l483l8-alfa-bank"
+   }
+  },
+  {
+   "published_at": "2026-11-21T09:01:57.481790",
+   "is_active": true,
+   "position": "Data Scientist (Антифрод)",
+   "language": "ru",
+   "type": "web_and_tg",
+   "id": 36374,
+   "offer_type": "vacancy",
+   "cover_letter_required": false,
+   "cover_letter_placeholder": null,
+   "source": "hh_import",
+   "incognito_publication": false,
+   "salary_description": "250 000 —‍ 450 000 ₽/‍мес на руки",
+   "salary_hidden": false,
+   "salary_display_from": 250000,
+   "salary_display_to": 450000,
+   "salary_currency": "RUB",
+   "salary_taxes": "net",
+   "salary_is_total": false,
+   "salary_by_our_version": false,
+   "salary_hidden_variant": null,
+   "offer_description": "<b>Что делать:</b> Погружаться в бизнес-контекст и данные, анализировать процессы и находить точки роста, пробовать ML-подходы для решения задач.\n\n<b>О компании:</b> Альфа-Банк — крупнейший независимый частный банк в России, лучший работодатель России по версии hh․ru и Хабр. 30 лет подряд занимает ведущие позиции в сегментах банковского бизнеса. У них более 550 тысяч корпоративных клиентов и более 16 млн. физлиц.",
+   "skills_objects": [
+    {
+     "name": "SQL",
+     "slug": "sql",
+     "is_custom": false
+    },
+    {
+     "name": "Python",
+     "slug": "python",
+     "is_custom": false
+    },
+    {
+     "name": "QA",
+     "slug": "qa",
+     "is_custom": false
+    },
+    {
+     "name": "Machine Learning",
+     "slug": "machine learning",
+     "is_custom": false
+    },
+    {
+     "name": "PySpark",
+     "slug": "pyspark",
+     "is_custom": false
+    },
+    {
+     "name": "Data Science",
+     "slug": "data science",
+     "is_custom": false
+    },
+    {
+     "name": "ML",
+     "slug": "ml",
+     "is_custom": false
+    },
+    {
+     "name": "Artificial Intelligence",
+     "slug": "artificial intelligence",
+     "is_custom": false
+    },
+    {
+     "name": "A/B Testing",
+     "slug": "a/b testing",
+     "is_custom": false
+    }
+   ],
+   "url": "/vacancies/36374-data-scientist-antifrod",
+   "description_html": null,
+   "english_level": null,
+   "location_requirements": [
+    {
+     "location_id": "russia",
+     "format": "remote",
+     "exclude": false,
+     "ancestors": [
+      "russia",
+      "_cu-europe",
+      "_cu-emea",
+      "_cu-world"
+     ],
+     "metros": [],
+     "city": "",
+     "country": "Россия"
+    }
+   ],
+   "location_items": [
+    {
+     "label": "Россия",
+     "format": "remote",
+     "exclude": false
+    }
+   ],
+   "application": null,
+   "viewed": false,
+   "company": {
+    "id": null,
+    "name": "Альфа-Банк",
+    "logotype": "7ce8fe6d-a30b-4650-b8da-ceb937fbf453.png",
+    "url": "/companies/N0l483l8-alfa-bank"
+   }
+  },
+  {
+   "published_at": "2026-11-21T09:01:53.797900",
+   "is_active": true,
+   "position": "Creative Copywriter",
+   "language": "ru",
+   "type": "web_and_tg",
+   "id": 36273,
+   "offer_type": "vacancy",
+   "cover_letter_required": false,
+   "cover_letter_placeholder": "",
+   "source": "backoffice",
+   "incognito_publication": false,
+   "salary_description": "от 1 300 $/‍мес на руки",
+   "salary_hidden": true,
+   "salary_display_from": null,
+   "salary_display_to": null,
+   "salary_currency": null,
+   "salary_taxes": "net",
+   "salary_is_total": false,
+   "salary_by_our_version": false,
+   "salary_hidden_variant": null,
+   "offer_description": "<b>Что делать:</b> Генерировать идеи и концепции для рекламных офферов и продвижения бренда, писать рекламные тексты для баннеров и поисковых объявлений в Google и Yandex, готовить email-рассылки.\n\n<b>О компании:</b> EX CORP. создают сервисы для геймеров. Продукты — CS․MONEY (маркетплейс скинов для CS и Dota2), SCOPE․GG (аналитический статистический сервис для CS), XPLAY․GG (тренировочные сервера CS), LVL․IO (B2B-решение для геймификации).",
+   "skills_objects": [],
+   "url": "/vacancies/36273-creative-copywriter",
+   "description_html": null,
+   "english_level": {
+    "name": "B2 — Upper-Intermediate",
+    "vacancy_description": "Знаете термины, свободно говорите на рабочие темы. Помощь нужна в редких случаях"
+   },
+   "location_requirements": [
+    {
+     "location_id": "_cu-world",
+     "format": "remote",
+     "exclude": false,
+     "ancestors": [
+      "_cu-world"
+     ],
+     "metros": [],
+     "city": "Весь мир",
+     "country": ""
+    }
+   ],
+   "location_items": [
+    {
+     "label": "Весь мир",
+     "format": "remote",
+     "exclude": false
+    }
+   ],
+   "application": null,
+   "viewed": false,
+   "company": {
+    "id": null,
+    "name": "EX CORP.",
+    "logotype": "e3a59bbb-b4c9-40e8-909a-fc8efc0258d7.png",
+    "url": "/companies/LBl50BQE-ex-corp"
+   }
+  },
+  {
+   "published_at": "2026-11-21T06:01:02.977717",
+   "is_active": true,
+   "position": "Data Security Specialist",
+   "language": "ru",
+   "type": "web_and_tg",
+   "id": 37321,
+   "offer_type": "vacancy",
+   "cover_letter_required": false,
+   "cover_letter_placeholder": "",
+   "source": "backoffice",
+   "incognito_publication": false,
+   "salary_description": "3 500 —‍ 6 000 €/‍мес до налогов",
+   "salary_hidden": false,
+   "salary_display_from": 3500,
+   "salary_display_to": 6000,
+   "salary_currency": "EUR",
+   "salary_taxes": "gross",
+   "salary_is_total": false,
+   "salary_by_our_version": false,
+   "salary_hidden_variant": null,
+   "offer_description": "<b>Что делать:</b> Обеспечивать безопасность данных на всех этапах жизненного цикла, разрабатывать и масштабировать процессы обеспечения безопасности данных, проводить моделирование угроз и анализ потоков данных. \n\n<b>О компании:</b> Название скрыто под NDA. Международная технологическая компания, эксперт в области разработки программного обеспечения для iGaming. Все подробности рекрутер раскроет лично сразу после отклика.",
+   "skills_objects": [
+    {
+     "name": "ISO 27001",
+     "slug": "iso 27001",
+     "is_custom": false
+    },
+    {
+     "name": "NIST CSF",
+     "slug": null,
+     "is_custom": true
+    },
+    {
+     "name": "CIS Controls",
+     "slug": null,
+     "is_custom": true
+    }
+   ],
+   "url": "/vacancies/37321-data-security-specialist",
+   "description_html": null,
+   "english_level": null,
+   "location_requirements": [
+    {
+     "location_id": "_cu-europe",
+     "format": "office",
+     "exclude": false,
+     "ancestors": [
+      "_cu-europe"
+     ],
+     "metros": [],
+     "city": "Европа",
+     "country": ""
+    },
+    {
+     "location_id": "_cu-world",
+     "format": "remote",
+     "exclude": false,
+     "ancestors": [
+      "_cu-world"
+     ],
+     "metros": [],
+     "city": "Весь мир",
+     "country": ""
+    }
+   ],
+   "location_items": [
+    {
+     "label": "Европа",
+     "format": "office",
+     "exclude": false
+    },
+    {
+     "label": "Весь мир",
+     "format": "remote",
+     "exclude": false
+    }
+   ],
+   "application": null,
+   "viewed": false,
+   "company": {
+    "id": null,
+    "name": "Компания скрыта (Сфера развлечений) ",
+    "logotype": "570bc6c4-809a-484a-bdea-ef0e18caaf63.png",
+    "url": "/companies/y4vWMal3-kompaniia-skryta-sfera-razvlechenii"
+   }
+  },
+  {
+   "published_at": "2026-11-11T08:52:04.397422",
+   "is_active": true,
+   "position": "Руководитель команды контекстных рекомендаций в VK Клипы",
+   "language": "ru",
+   "type": "web_and_tg",
+   "id": 37223,
+   "offer_type": "one_day_offer_v3",
+   "cover_letter_required": false,
+   "cover_letter_placeholder": null,
+   "source": "backoffice",
+   "incognito_publication": false,
+   "salary_description": null,
+   "salary_hidden": true,
+   "salary_display_from": null,
+   "salary_display_to": null,
+   "salary_currency": null,
+   "salary_taxes": "net",
+   "salary_is_total": false,
+   "salary_by_our_version": false,
+   "salary_hidden_variant": null,
+   "offer_description": "<b>VK Клипы ищет руководителя команды контекстных рекомендаций. </b> Открыта одна позиция, найм быстрый и прозрачный.\n\n<u>Что мы ждём:</u> \n→ опыт руководства командой ML или разработки от двух лет;\n→ практический опыт разработки на Java, Python или C++;\n→ опыт развития команды и проведения Code Review.\n\n<b>Формат работы:</b> гибрид в Москве.\n\nСтаньте частью команды, которая создаёт интеллектуальные системы рекомендаций и персонализирует видеоконтент для миллионов пользователей VK!\n\n<i>Подробнее о команде и процессе найма читайте в описании анонса.</i>",
+   "skills_objects": [],
+   "url": "/vacancies/37223-rukovoditel-komandy-kontekstnykh-rekomendatsii-v-vk",
+   "description_html": null,
+   "english_level": null,
+   "location_requirements": [
+    {
+     "location_id": "moscow__mo__russia",
+     "format": "hybrid",
+     "exclude": false,
+     "ancestors": [
+      "moscow",
+      "mo__russia",
+      "russia",
+      "_cu-europe",
+      "_cu-emea",
+      "_cu-world"
+     ],
+     "metros": [
+      "м. Павелецкая"
+     ],
+     "city": "Москва",
+     "country": "Россия"
+    }
+   ],
+   "location_items": [
+    {
+     "label": "Москва (м. Павелецкая)",
+     "format": "hybrid",
+     "exclude": false
+    }
+   ],
+   "application": null,
+   "viewed": false,
+   "company": {
+    "id": null,
+    "name": "VK",
+    "logotype": "f825e740-e795-4948-ba5d-d67a76d6fac3.png",
+    "url": "/companies/kdl1BRZV-vk"
+   }
+  },
+  {
+   "published_at": "2026-11-11T08:51:30.861274",
+   "is_active": true,
+   "position": "Открыта позиция Руководителя группы рекомендаций фильмов и сериалов в VK Видео",
+   "language": "ru",
+   "type": "web_and_tg",
+   "id": 37224,
+   "offer_type": "one_day_offer_v3",
+   "cover_letter_required": false,
+   "cover_letter_placeholder": null,
+   "source": "backoffice",
+   "incognito_publication": false,
+   "salary_description": null,
+   "salary_hidden": true,
+   "salary_display_from": null,
+   "salary_display_to": null,
+   "salary_currency": null,
+   "salary_taxes": "net",
+   "salary_is_total": false,
+   "salary_by_our_version": false,
+   "salary_hidden_variant": null,
+   "offer_description": "<b>VK Видео ищет руководителя группы рекомендаций фильмов и сериалов</b> в команду контекстных рекомендаций! Открыта одна позиция, найм быстрый и прозрачный.\n\n<u>Что важно для нас:</u>\n→ не менее двух лет опыта руководства ML-командой;\n→ практический опыт разработки на Java, Python или C++;\n→ уверенное знание алгоритмов, структур данных и машинного обучения.\n\n<b>Формат работы:</b> Москва, офис на станции метро Павелецкая.\n\nВы будете развивать интеллектуальные рекомендации, которые помогают миллионам зрителей находить интересное и делают просмотр по-настоящему персональным.\n\n<i>Подробнее о команде и процессе найма читайте в описании анонса.</i>",
+   "skills_objects": [],
+   "url": "/vacancies/37224-otkryta-pozitsiia-rukovoditelia-gruppy-rekomendatsii-filmov",
+   "description_html": null,
+   "english_level": null,
+   "location_requirements": [
+    {
+     "location_id": "moscow__mo__russia",
+     "format": "office",
+     "exclude": false,
+     "ancestors": [
+      "moscow",
+      "mo__russia",
+      "russia",
+      "_cu-europe",
+      "_cu-emea",
+      "_cu-world"
+     ],
+     "metros": [
+      "м. Павелецкая"
+     ],
+     "city": "Москва",
+     "country": "Россия"
+    }
+   ],
+   "location_items": [
+    {
+     "label": "Москва (м. Павелецкая)",
+     "format": "office",
+     "exclude": false
+    }
+   ],
+   "application": null,
+   "viewed": false,
+   "company": {
+    "id": null,
+    "name": "VK",
+    "logotype": "f825e740-e795-4948-ba5d-d67a76d6fac3.png",
+    "url": "/companies/kdl1BRZV-vk"
+   }
+  },
+  {
+   "published_at": "2026-11-21T09:02:00.723947",
+   "is_active": true,
+   "position": "Разработчик хранилищ данных",
+   "language": "ru",
+   "type": "only_web",
+   "id": 34505,
+   "offer_type": "vacancy",
+   "cover_letter_required": false,
+   "cover_letter_placeholder": null,
+   "source": "manual",
+   "incognito_publication": false,
+   "salary_description": "140 000 —‍ 200 000 ₽/‍мес на руки",
+   "salary_hidden": false,
+   "salary_display_from": 140000,
+   "salary_display_to": 200000,
+   "salary_currency": "RUB",
+   "salary_taxes": "net",
+   "salary_is_total": false,
+   "salary_by_our_version": false,
+   "salary_hidden_variant": null,
+   "offer_description": "<b>Что делать:</b> Разрабатывать функционал расчёта финансового результата MIS по продуктам корпоративного блока согласно методологиям планирования и Внутреннего банка, проектировать и разрабатывать витрины данных по финансовому результату в соответствии с архитектурными и интеграционными требованиями, реализовывать ETL-процессы и интеграционные решения.\n\n<b>О компании:</b> Сбербанк — крупнейший банк в России, Центральной и Восточной Европе, один из ведущих международных финансовых институтов.",
+   "skills_objects": [
+    {
+     "name": "Greenplum",
+     "slug": "greenplum",
+     "is_custom": false
+    },
+    {
+     "name": "PostgreSQL",
+     "slug": "postgresql",
+     "is_custom": false
+    },
+    {
+     "name": "ClickHouse",
+     "slug": "clickhouse",
+     "is_custom": false
+    }
+   ],
+   "url": "/vacancies/34505-razrabotchik-khranilishch-dannykh",
+   "description_html": null,
+   "english_level": null,
+   "location_requirements": [
+    {
+     "location_id": "moscow__mo__russia",
+     "format": "office",
+     "exclude": false,
+     "ancestors": [
+      "moscow",
+      "mo__russia",
+      "russia",
+      "_cu-europe",
+      "_cu-emea",
+      "_cu-world"
+     ],
+     "metros": [
+      "м. Ленинский проспект"
+     ],
+     "city": "Москва",
+     "country": "Россия"
+    }
+   ],
+   "location_items": [
+    {
+     "label": "Москва (м. Ленинский проспект)",
+     "format": "office",
+     "exclude": false
+    }
+   ],
+   "application": null,
+   "viewed": false,
+   "company": {
+    "id": null,
+    "name": "Сбер",
+    "logotype": "8f5d6d49-bb76-4250-9aa9-267e36fc5273.png",
+    "url": "/companies/GNRXrNQz-sber"
+   }
+  }
+ ]
+}
