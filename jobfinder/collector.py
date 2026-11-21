@@ -1,0 +1,101 @@
+from __future__ import annotations
+
+import copy
+import threading
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import UTC, datetime
+
+from . import db
+from .filters import FilterConfig, classify_scope, hidden_reason
+from .http import PoliteClient, SourceBlocked
+from .models import Job
+from .normalize import normalize_job
+from .sources import REGISTRY
+from .sources.base import Source
+
+_lock = threading.Lock()
+
+
+@dataclass
+class RunResult:
+    source: str
+    ok: bool
+    fetched: int
+    new: int
+    skipped: int
+    requests: int
+    error: str | None
+
+
+def _prepare(job: Job, cfg: FilterConfig) -> str | None:
+    """Normalize in place, set scope/countries; return hidden_reason."""
+    normalize_job(job)
+    job.remote_scope, job.countries = classify_scope(job)
+    return hidden_reason(job, cfg)
+
+
+def _error_text(exc: Exception) -> str:
+    if isinstance(exc, SourceBlocked):
+        return f"сайт ограничил доступ (HTTP {exc.status})"
+    return str(exc) or type(exc).__name__
+
+
+def collect(conn, sources: dict[str, Source] | None = None,
+            now_fn: Callable[[], datetime] = lambda: datetime.now(UTC),
+            client_factory=PoliteClient, only: str | None = None) -> list[RunResult]:
+    """Run sources one by one and store their jobs.
+
+    Sources listed in the `disabled_sources` setting are skipped, except when
+    `only` names one explicitly (a manual request runs even a disabled source).
+    If another collect is already running, returns [] immediately.
+    """
+    if not _lock.acquire(blocking=False):
+        return []
+    try:
+        sources = REGISTRY if sources is None else sources
+        if only is not None:
+            names = [only] if only in sources else []
+        else:
+            disabled = set(db.get_setting(conn, "disabled_sources") or [])
+            names = [n for n in sources if n not in disabled]
+        return [_run_one(conn, sources[n], n, now_fn, client_factory) for n in names]
+    finally:
+        _lock.release()
+
+
+def _run_one(conn, source: Source, name: str, now_fn, client_factory) -> RunResult:
+    run_id = db.start_run(conn, name, now_fn())
+    fetched = new = skipped = requests = 0
+    error: str | None = None
+    client = None
+    try:
+        client = client_factory()
+        settings = db.all_settings(conn)
+        before = copy.deepcopy(settings)
+        cfg = FilterConfig(country=settings["country"], stopwords=settings["stopwords"])
+
+        def wants(job: Job) -> bool:
+            probe = copy.deepcopy(job)
+            return _prepare(probe, cfg) is None
+
+        jobs = source.fetch(client, db.known_source_ids(conn, name), wants, settings)
+        for key, value in settings.items():
+            if key not in before or before[key] != value:
+                db.set_setting(conn, key, value)
+        fetched = len(jobs)
+        for job in jobs:
+            if not job.title or not job.url:
+                skipped += 1
+                continue
+            reason = _prepare(job, cfg)
+            _, is_new = db.upsert_job(conn, job, reason, now_fn())
+            new += is_new
+    except Exception as exc:
+        error = _error_text(exc)
+    finally:
+        if client is not None:
+            requests = getattr(client, "requests", 0)
+            client.close()
+    db.finish_run(conn, run_id, error is None, fetched, new, error, now_fn(), skipped=skipped)
+    return RunResult(name, error is None, fetched, new, skipped, requests, error)
