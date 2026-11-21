@@ -25,8 +25,11 @@ SECTIONS = ("feed", "mine", "archive", "hidden")
 
 
 def ensure_fts(conn: sqlite3.Connection) -> None:
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(jobs_fts)")]
+    if cols and "title" not in cols:  # old single-column index: rebuild with a title column
+        conn.execute("DROP TABLE jobs_fts")
     conn.execute("CREATE VIRTUAL TABLE IF NOT EXISTS jobs_fts USING fts5("
-                 "body, tokenize='unicode61 remove_diacritics 2')")
+                 "title, body, tokenize='unicode61 remove_diacritics 2')")
     # Backfill: FTS table is new/empty but jobs already exist.
     if (conn.execute("SELECT 1 FROM jobs_fts LIMIT 1").fetchone() is None
             and conn.execute("SELECT 1 FROM jobs LIMIT 1").fetchone() is not None):
@@ -62,7 +65,8 @@ def index_job(conn: sqlite3.Connection, job_id: int) -> None:
     body = stem_text(" ".join([row["title"] or "", row["company"] or "", stack,
                                row["description_text"] or ""]))
     conn.execute("DELETE FROM jobs_fts WHERE rowid=?", (job_id,))
-    conn.execute("INSERT INTO jobs_fts(rowid, body) VALUES(?, ?)", (job_id, body))
+    conn.execute("INSERT INTO jobs_fts(rowid, title, body) VALUES(?, ?, ?)",
+                 (job_id, stem_text(row["title"] or ""), body))
 
 
 @lru_cache(maxsize=1)
@@ -160,11 +164,15 @@ def search_jobs(conn: sqlite3.Connection, p: SearchParams, now: datetime) -> lis
     if built is None:
         return []
     where, args = built
+    order, order_args = "j.first_seen_at DESC, j.id DESC", []
+    match = expand_query(p.text)
+    if match is not None:  # jobs with the query in the title come first
+        order = ("j.id IN (SELECT rowid FROM jobs_fts WHERE jobs_fts MATCH ?) DESC, " + order)
+        order_args = [f"title : ({match})"]
     try:
         rows = conn.execute(
-            f"SELECT {_COLS} {_FROM} WHERE {where} "
-            "ORDER BY j.first_seen_at DESC, j.id DESC LIMIT ? OFFSET ?",
-            [*args, p.limit, p.offset]).fetchall()
+            f"SELECT {_COLS} {_FROM} WHERE {where} ORDER BY {order} LIMIT ? OFFSET ?",
+            [*args, *order_args, p.limit, p.offset]).fetchall()
     except sqlite3.OperationalError as e:  # last-resort guard; quoting should prevent this
         log.warning("search failed for %r: %s", p.text, e)
         return []

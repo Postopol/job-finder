@@ -123,3 +123,22 @@ def test_fts_backfill(conn, now):
     conn.execute("DROP TABLE jobs_fts")
     ensure_fts(conn)
     assert titles(search_jobs(conn, SearchParams(text="rust"), now)) == ["Rust Engineer"]
+
+
+def test_title_matches_rank_first(conn, now):
+    from datetime import timedelta
+    add(conn, title="Product Manager", company="A", now=now - timedelta(hours=5))
+    add(conn, title="Tax Analyst", description_text="Work with the product manager daily.")
+    add(conn, title="Senior Product Manager", company="B", now=now - timedelta(hours=1))
+    rows = search_jobs(conn, SearchParams(text="Product Manager"), now)
+    assert titles(rows) == ["Senior Product Manager", "Product Manager", "Tax Analyst"]
+
+
+def test_fts_migrates_old_single_column_table(conn, now):
+    from jobfinder.search import ensure_fts
+    add(conn, title="Product Manager")
+    conn.execute("DROP TABLE jobs_fts")
+    conn.execute("CREATE VIRTUAL TABLE jobs_fts USING fts5(body)")
+    conn.execute("INSERT INTO jobs_fts(rowid, body) VALUES (1, 'old')")
+    ensure_fts(conn)
+    assert titles(search_jobs(conn, SearchParams(text="product"), now)) == ["Product Manager"]
