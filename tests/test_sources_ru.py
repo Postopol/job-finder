@@ -191,7 +191,7 @@ def test_hh_pages_until_repeat_or_empty():
 
 
 @pytest.mark.parametrize("withtoken", [True, False])
-def test_hh_detail_failure_keeps_job_but_block_propagates(withtoken, caplog):
+def test_hh_detail_failure_keeps_job_and_block_defers_new(withtoken, caplog):
     settings = {"hh_token": "T"} if withtoken else {}
 
     def listing(req):
@@ -327,6 +327,20 @@ def test_hh_page_non_remote_dropped():
     assert hh.SOURCE.parse_item(office) is None
     hybrid = {**item, "workFormats": [{"workFormatsElement": ["REMOTE", "HYBRID"]}]}
     assert hh.SOURCE.parse_item(hybrid) is not None
+
+
+def test_hh_page_hourly_salary_uses_per_mode_amounts():
+    item = hh.parse_payload(text("hh_search.html"))[0]
+    # live case: hh puts a monthly estimate in from/to and the hourly rate in perModeFrom
+    hourly = {**item, "compensation": {"from": 514285, "currencyCode": "RUR", "gross": True,
+                                       "perModeFrom": 5000, "mode": "HOUR"}}
+    job = hh.SOURCE.parse_item(hourly)
+    assert (job.salary_min, job.salary_max, job.salary_currency, job.salary_period) == \
+        (5000, None, "RUB", "hour")
+    # no per-mode amounts: from/to are already monthly
+    monthly = {**item, "compensation": {"from": 514285, "currencyCode": "RUR", "mode": "HOUR"}}
+    job = hh.SOURCE.parse_item(monthly)
+    assert (job.salary_min, job.salary_period) == (514285, "month")
 
 
 def test_hh_api_non_remote_dropped():

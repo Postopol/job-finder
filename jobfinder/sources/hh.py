@@ -120,11 +120,16 @@ class Hh(Source):
         if not title or not _page_remote(item):
             return None
         comp = item.get("compensation") if isinstance(item.get("compensation"), dict) else {}
+        # from/to are hh's monthly estimate; the rate in the vacancy's own mode is perModeFrom/To
+        if "perModeFrom" in comp or "perModeTo" in comp:
+            lo, hi, mode = comp.get("perModeFrom"), comp.get("perModeTo"), comp.get("mode", "MONTH")
+        else:
+            lo, hi, mode = comp.get("from"), comp.get("to"), "MONTH"
         pub = item.get("publicationTime")
         return self._job(
             str(item["vacancyId"]), title, item.get("company", {}).get("visibleName")
             if isinstance(item.get("company"), dict) else None,
-            comp.get("from"), comp.get("to"), comp.get("currencyCode"), comp.get("mode", "MONTH"),
+            lo, hi, comp.get("currencyCode"), mode,
             _name(item.get("area")), item.get("workExperience"),
             pub.get("$") if isinstance(pub, dict) else None, item, "")
 
