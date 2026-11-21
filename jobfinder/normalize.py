@@ -25,9 +25,9 @@ _CURRENCIES = [
     ("GBP", re.compile(r"£|\bgbp\b", re.I)),
 ]
 _PERIODS = [
-    ("hour", re.compile(r"\b(?:hour|hourly|hr|h)\b|час", re.I)),
-    ("month", re.compile(r"\b(?:month|monthly|mo)\b|мес", re.I)),
-    ("year", re.compile(r"\b(?:year|yearly|yr|annual|annually)\b|год|/\s*y\b", re.I)),
+    ("hour", re.compile(r"\b(?:hour|hourly|hr|h)\b|(?<!\w)час(?:а|ов)?(?!\w)", re.I)),
+    ("month", re.compile(r"\b(?:month|monthly|mo)\b|(?<!\w)мес(?:яц\w*)?(?!\w)", re.I)),
+    ("year", re.compile(r"\b(?:year|yearly|yr|annual|annually)\b|(?<!\w)год(?:а|у)?(?!\w)|/\s*y\b", re.I)),
 ]
 _NUMBER = re.compile(
     r"(\d{1,3}(?:[ ,]\d{3})+|\d+(?:\.\d+)?)\s*(k\b|тыс\b\.?)?", re.I
@@ -221,5 +221,5 @@ def normalize_job(job: Job) -> Job:
             job.salary_currency, job.salary_period = sal.currency, sal.period
     if not job.seniority:
         job.seniority = detect_seniority(job.title, job.description_text)
-    job.stack = list(dict.fromkeys([*job.stack, *extract_stack(job.description_text, job.stack)]))
+    job.stack = extract_stack(job.description_text, job.stack)
     return job

@@ -41,3 +41,33 @@ def test_extract_stack_whole_words_only():
 
 def test_html_to_text_strips_tags_and_keeps_breaks():
     assert html_to_text("<p>One</p><ul><li>Two</li></ul><script>x()</script>") == "One\nTwo"
+
+
+def test_period_words_need_word_start():
+    assert parse_salary("частичная занятость 50000 ₽") == Salary(50000, None, "RUB", "month")
+    assert parse_salary("100 000 ₽ в месяц").period == "month"
+    assert parse_salary("1500 ₽ в час").period == "hour"
+
+
+def _job(**kw):
+    from jobfinder.models import Job
+    return Job(source="s", source_id="1", url="u", title=kw.pop("title", "Developer"), **kw)
+
+
+def test_normalize_job_fills_fields():
+    from jobfinder.normalize import normalize_job
+    job = normalize_job(_job(title="Senior Dev", description_html="<p>Python and Go</p>",
+                             salary_raw="$5,000 - $6,500 / month", stack=["python", "k8s", "remote"]))
+    assert job.description_text == "Python and Go"
+    assert (job.salary_min, job.salary_max, job.salary_currency, job.salary_period) == (5000, 6500, "USD", "month")
+    assert job.seniority == "senior"
+    assert job.stack == ["Python", "Kubernetes", "Go"]
+
+
+def test_normalize_job_keeps_existing_values():
+    from jobfinder.normalize import normalize_job
+    job = normalize_job(_job(title="Senior Dev", description_html="<p>x</p>", description_text="given",
+                             salary_raw="$1,000", salary_min=1, seniority="lead"))
+    assert job.description_text == "given"
+    assert job.salary_min == 1 and job.salary_max is None and job.salary_currency is None
+    assert job.seniority == "lead"
