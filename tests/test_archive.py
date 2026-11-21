@@ -21,7 +21,9 @@ class FakeSource(Source):
         if item.get("skip"):
             return None
         return Job(source=self.name, source_id=str(item["id"]), url="https://x/" + str(item["id"]),
-                   title=self.title, company="Acme")
+                   title=self.title, company="Acme", salary_min=item.get("sal"),
+                   salary_max=item.get("sal"), salary_currency="USD" if item.get("sal") else None,
+                   salary_period="month" if item.get("sal") else None)
 
     def fetch(self, client, known, wants, settings):
         return []
@@ -134,3 +136,35 @@ def test_reparse_skips_none_and_missing_raw(conn, now):
     assert archive.reparse(conn, None, {"s1": FakeSource("s1")}) == 0
     assert db.get_job(conn, a)["title"] == "Python Developer"
     assert db.get_job(conn, b)["title"] == "Keep"
+
+
+def test_reparse_merges_postings_keeps_salary(conn, now):
+    jid, _ = db.upsert_job(conn, mk(source="s1", source_id="1", raw={"id": 1}), None, now)
+    db.upsert_job(conn, mk(source="s2", source_id="2", raw={"id": 2, "sal": 5000}), None, now)
+    srcs = {"s1": FakeSource("s1"), "s2": FakeSource("s2")}
+    assert archive.reparse(conn, None, srcs) == 1
+    j = db.get_job(conn, jid)
+    assert j["salary_max"] == 5000
+    assert j["salary_usd_month"] == 5000
+
+
+def test_reparse_updates_dedup_key_and_salary_usd(conn, now):
+    jid, _ = db.upsert_job(conn, mk(raw={"id": 1, "sal": 1000}), None, now)
+    before = db.get_job(conn, jid)
+    archive.reparse(conn, None, {"s1": FakeSource("s1", title="Rust Engineer")})
+    after = db.get_job(conn, jid)
+    assert after["dedup_key"] != before["dedup_key"]
+    archive.reparse(conn, None, {"s1": FakeSource("s1", title="Rust Engineer")})
+    conn.execute("UPDATE postings SET raw=? WHERE job_id=?",
+                 (zlib.compress(json.dumps({"id": 1, "sal": 2000}).encode()), jid))
+    archive.reparse(conn, None, {"s1": FakeSource("s1")})
+    assert db.get_job(conn, jid)["salary_usd_month"] == 2000
+
+
+def test_reparse_isolates_corrupt_raw(conn, now):
+    a, _ = db.upsert_job(conn, mk(source_id="1", raw={"id": 1}), None, now)
+    b, _ = db.upsert_job(conn, mk(source_id="2", title="T2", company="B", raw={"id": 2}), None, now)
+    conn.execute("UPDATE postings SET raw=? WHERE job_id=?", (b"garbage", a))
+    assert archive.reparse(conn, None, {"s1": FakeSource("s1")}) == 1
+    assert db.get_job(conn, b)["title"] == "Reparsed Title"
+    assert db.get_job(conn, a)["title"] == "Python Developer"

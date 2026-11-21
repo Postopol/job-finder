@@ -1,15 +1,19 @@
 from __future__ import annotations
 
+import copy
 import json
+import logging
 import zlib
 from datetime import datetime, timedelta
 
 from . import db
 from .collector import _prepare
 from .filters import FilterConfig
+from .models import Job
 from .sources import REGISTRY
 from .sources.base import Source
 
+log = logging.getLogger(__name__)
 INCREMENTAL_ARCHIVE_DAYS = 30
 OK_RUN_WINDOW_DAYS = 2
 
@@ -57,25 +61,58 @@ def purge_raw(conn, now: datetime) -> int:
     return cur.rowcount
 
 
+_SCALARS = ("company", "salary_raw", "salary_min", "salary_max", "salary_currency",
+            "salary_period", "location_raw", "work_format", "seniority", "published_at")
+_LISTS = ("countries", "timezones", "stack")
+
+
+def _merge(jobs: list[Job]) -> Job:
+    """Merge parsed postings of one job like upsert does; the first one is primary."""
+    merged = copy.deepcopy(jobs[0])
+    for other in jobs[1:]:
+        for n in _SCALARS:
+            if getattr(merged, n) is None:
+                setattr(merged, n, getattr(other, n))
+        for n in _LISTS:
+            if not getattr(merged, n):
+                setattr(merged, n, getattr(other, n))
+        if len(other.description_html or "") > len(merged.description_html or ""):
+            merged.description_html = other.description_html
+            merged.description_text = other.description_text
+    return merged
+
+
 def reparse(conn, source: str | None = None, sources: dict[str, Source] | None = None) -> int:
     """Re-parse saved raw with current parsers, no network. Returns updated jobs count."""
     sources = REGISTRY if sources is None else sources
     settings = db.all_settings(conn)
     cfg = FilterConfig(country=settings["country"], stopwords=settings["stopwords"])
-    query = "SELECT job_id, source, raw FROM postings WHERE raw IS NOT NULL"
+    query = ("SELECT p.job_id, p.source, p.raw FROM postings p JOIN jobs j ON j.id=p.job_id "
+             "WHERE p.raw IS NOT NULL")
     args: tuple = ()
     if source is not None:
-        query += " AND source=?"
+        query += " AND p.job_id IN (SELECT job_id FROM postings WHERE source=?)"
         args = (source,)
-    updated: set[int] = set()
-    for r in conn.execute(query + " ORDER BY id", args).fetchall():
-        src = sources.get(r["source"])
-        if src is None or r["job_id"] in updated:
-            continue
-        job = src.parse_item(json.loads(zlib.decompress(r["raw"])))
-        if job is None:
-            continue
-        reason = _prepare(job, cfg)
-        db.update_job_fields(conn, r["job_id"], job, reason)
-        updated.add(r["job_id"])
-    return len(updated)
+    by_job: dict[int, list] = {}
+    for r in conn.execute(query + " ORDER BY (p.source=j.source_primary) DESC, p.id",
+                          args).fetchall():
+        by_job.setdefault(r["job_id"], []).append(r)
+    count = 0
+    for job_id, posts in by_job.items():
+        try:
+            parsed = []
+            for r in posts:
+                src = sources.get(r["source"])
+                if src is None:
+                    continue
+                job = src.parse_item(json.loads(zlib.decompress(r["raw"])))
+                if job is None:
+                    continue
+                parsed.append((job, _prepare(job, cfg)))
+            if not parsed:
+                continue
+            db.update_job_fields(conn, job_id, _merge([j for j, _ in parsed]), parsed[0][1])
+            count += 1
+        except Exception:
+            log.warning("reparse: не удалось обработать вакансию %s", job_id, exc_info=True)
+    return count
