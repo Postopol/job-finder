@@ -134,7 +134,7 @@ def test_secondary_source_does_not_erase_data(conn, now):
     assert conn.execute("SELECT salary_usd_month FROM jobs WHERE id=?", (jid,)).fetchone()[0] == 2000
 
 
-def test_update_latest_scope_and_hidden_reason_win(conn, now):
+def test_update_without_reason_fn_stores_given_scope_and_reason(conn, now):
     jid, _ = upsert_job(conn, mk(remote_scope="worldwide"), "x", now)
     upsert_job(conn, mk(remote_scope="cis"), None, now)
     g = get_job(conn, jid)
@@ -154,3 +154,55 @@ def test_set_status_rejects_unknown(conn, now):
     jid, _ = upsert_job(conn, mk(), None, now)
     with pytest.raises(ValueError):
         set_status(conn, jid, "bogus", now)
+
+
+def test_salary_merged_as_one_group(conn, now):
+    jid, _ = upsert_job(conn, mk(source="a", salary_raw="до $5000", salary_max=5000,
+                                 salary_currency="USD", salary_period="month"), None, now)
+    upsert_job(conn, mk(source="b", source_id="2", salary_raw="от €3000", salary_min=3000,
+                        salary_currency="EUR", salary_period="year"), None, now)
+    g = get_job(conn, jid)
+    assert (g["salary_raw"], g["salary_min"], g["salary_max"], g["salary_currency"],
+            g["salary_period"]) == ("от €3000", 3000, None, "EUR", "year")
+    upsert_job(conn, mk(source="c", source_id="3", salary_raw="competitive",
+                        salary_currency="GBP", salary_period="hour"), None, now)
+    g = get_job(conn, jid)  # no amount: the whole stored group stays
+    assert (g["salary_raw"], g["salary_min"], g["salary_max"], g["salary_currency"],
+            g["salary_period"]) == ("от €3000", 3000, None, "EUR", "year")
+
+
+def test_reason_fn_sees_merged_record(conn, now):
+    jid, _ = upsert_job(conn, mk(description_html="<p>long detail text</p>",
+                                 description_text="long detail text", location_raw="Berlin"),
+                        None, now)
+    seen = []
+
+    def reason_fn(job):
+        seen.append((job.description_text, job.location_raw))
+        return "x"
+
+    upsert_job(conn, mk(), None, now, reason_fn=reason_fn)
+    assert seen == [("long detail text", "Berlin")]
+    assert get_job(conn, jid)["hidden_reason"] == "x"
+
+
+def test_old_db_gets_description_detail_column(tmp_path):
+    import sqlite3
+    path = tmp_path / "old.db"
+    old = sqlite3.connect(path)
+    old.execute("CREATE TABLE jobs (id INTEGER PRIMARY KEY, dedup_key TEXT NOT NULL, "
+                "source_primary TEXT NOT NULL, title TEXT NOT NULL, company TEXT, lang TEXT, "
+                "url TEXT, description_html TEXT, description_text TEXT, salary_raw TEXT, "
+                "salary_min INTEGER, salary_max INTEGER, salary_currency TEXT, salary_period TEXT, "
+                "salary_usd_month REAL, location_raw TEXT, work_format TEXT, remote_scope TEXT, "
+                "countries TEXT, timezones TEXT, seniority TEXT, stack TEXT, published_at TEXT, "
+                "first_seen_at TEXT NOT NULL, last_seen_at TEXT NOT NULL, archived_at TEXT, "
+                "hidden_reason TEXT)")
+    old.execute("INSERT INTO jobs(dedup_key, source_primary, title, first_seen_at, last_seen_at) "
+                "VALUES('k', 's', 'T', 'a', 'a')")
+    old.commit()
+    old.close()
+    c = connect(path)
+    row = c.execute("SELECT description_detail FROM jobs").fetchone()
+    assert row["description_detail"] is None  # unknown for rows stored before the flag
+    c.close()

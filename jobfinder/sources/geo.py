@@ -4,8 +4,6 @@ from __future__ import annotations
 import re
 from datetime import UTC, datetime
 
-from ..models import CIS
-
 COUNTRIES = {
     "united states": "US", "usa": "US", "us": "US", "u.s.": "US", "u.s.a.": "US", "america": "US",
     "canada": "CA", "mexico": "MX", "brazil": "BR", "argentina": "AR", "colombia": "CO",
@@ -87,7 +85,8 @@ def scope_from_location(text: str | None) -> tuple[str, list[str]]:
     names = split_places(text)
     codes, unknown = countries_from(names)
     if codes and not unknown:
-        if _ONLY.search(text) and not all(c in CIS for c in codes):
+        # «Russia only» is not open to Kazakhstan: an «only» list stays visible only with KZ
+        if _ONLY.search(text) and "KZ" not in codes:
             return "restricted", []
         return "countries", codes
     return "unknown", []

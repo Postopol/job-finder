@@ -357,3 +357,13 @@ def test_habr_non_remote_dropped():
     assert habr.SOURCE.parse_item(item) is not None
     assert habr.SOURCE.parse_item({**item, "remoteWork": False}) is None
     assert habr.SOURCE.parse_item({k: v for k, v in item.items() if k != "remoteWork"}) is None
+
+
+def test_getmatch_russia_only_offers_hidden():
+    from jobfinder.collector import _prepare
+    from jobfinder.filters import FilterConfig
+    jobs = [j for j in map(getmatch.SOURCE.parse_item, getmatch.parse_payload(payload(getmatch))) if j]
+    ru_only = [j for j in jobs if j.countries == ["RU"]]
+    assert ru_only
+    for j in ru_only:
+        assert _prepare(j, FilterConfig(country="KZ")) == "restricted" and j.remote_scope == "countries"

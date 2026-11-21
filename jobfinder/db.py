@@ -4,6 +4,7 @@ import copy
 import json
 import sqlite3
 import zlib
+from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -32,6 +33,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     url TEXT,
     description_html TEXT,
     description_text TEXT,
+    description_detail INTEGER,
     salary_raw TEXT,
     salary_min INTEGER,
     salary_max INTEGER,
@@ -100,8 +102,24 @@ def connect(path: Path | str) -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
     conn.executescript(SCHEMA)
+    _migrate(conn)
     search.ensure_fts(conn)
     return conn
+
+
+# Columns added after the first release: (table, column, declaration).
+_ADDED_COLUMNS = [
+    ("runs", "skipped", "INTEGER NOT NULL DEFAULT 0"),
+    # 1 = description from a detail page, 0 = from the listing, NULL = stored before tracking
+    ("jobs", "description_detail", "INTEGER"),
+]
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    for table, column, decl in _ADDED_COLUMNS:
+        cols = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
+        if column not in cols:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
 
 
 @contextmanager
@@ -159,11 +177,53 @@ def _salary_usd_month(conn: sqlite3.Connection, smin, smax, currency, period) ->
     return value
 
 
+SALARY_FIELDS = ("salary_raw", "salary_min", "salary_max", "salary_currency", "salary_period")
+
+
+def merge_salary(job: Job, old) -> None:
+    """Salary is one group: amounts, currency and period always come from the same posting.
+
+    The incoming job wins when it has an amount; otherwise the stored group is kept.
+    `old` is anything indexable by field name (a row or a dict)."""
+    if job.salary_min is not None or job.salary_max is not None:
+        return
+    if old["salary_min"] is not None or old["salary_max"] is not None:
+        for n in SALARY_FIELDS:
+            setattr(job, n, old[n])
+    elif job.salary_raw is None:
+        job.salary_raw = old["salary_raw"]
+
+
+def _merge_stored(job: Job, old: sqlite3.Row) -> None:
+    """Fill the incoming (normalized, not yet classified) job with what the stored record
+    keeps, so that scope and hide reason are computed on the merged record."""
+    for n in ("company", "location_raw", "work_format", "seniority"):
+        if getattr(job, n) is None:
+            setattr(job, n, old[n])
+    if job.published_at is None and old["published_at"]:
+        job.published_at = datetime.fromisoformat(old["published_at"])
+    for n in ("countries", "timezones", "stack"):
+        if not getattr(job, n):
+            setattr(job, n, json.loads(old[n] or "[]"))
+    merge_salary(job, old)
+    if len(job.description_html or "") < len(old["description_html"] or ""):
+        job.description_html = old["description_html"]
+        job.description_text = old["description_text"]
+        detail = old["description_detail"]
+        job.description_detail = None if detail is None else bool(detail)
+
+
 def upsert_job(conn: sqlite3.Connection, job: Job, hidden_reason: str | None,
-               now: datetime) -> tuple[int, bool]:
+               now: datetime, *,
+               reason_fn: Callable[[Job], str | None] | None = None) -> tuple[int, bool]:
+    """Insert a job or merge it into the stored one.
+
+    With `reason_fn`, `job` must be normalized but not yet classified: it is merged with
+    the stored record in place (longer description, kept fields), then `reason_fn(job)`
+    sets its scope and returns the hide reason. Without it, `hidden_reason` is stored as is.
+    """
     now_s = _iso(now)
     raw = zlib.compress(json.dumps(job.raw).encode()) if job.raw is not None else None
-    published = _iso(job.published_at) if job.published_at else None
     with _tx(conn):
         posting = conn.execute(
             "SELECT id, job_id FROM postings WHERE source=? AND source_id=?",
@@ -177,51 +237,32 @@ def upsert_job(conn: sqlite3.Connection, job: Job, hidden_reason: str | None,
                 (key, cutoff)).fetchone()
             job_id = row["id"] if row else None
         is_new = job_id is None
+        if not is_new:
+            _merge_stored(job, conn.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone())
+        if reason_fn is not None:
+            hidden_reason = reason_fn(job)
+        f = dict(
+            dedup_key=dedup_key(job.company, job.title), title=job.title, company=job.company,
+            lang=job.lang, description_html=job.description_html,
+            description_text=job.description_text,
+            description_detail=None if job.description_detail is None else int(job.description_detail),
+            salary_raw=job.salary_raw, salary_min=job.salary_min, salary_max=job.salary_max,
+            salary_currency=job.salary_currency, salary_period=job.salary_period,
+            salary_usd_month=_salary_usd_month(conn, job.salary_min, job.salary_max,
+                                               job.salary_currency, job.salary_period),
+            location_raw=job.location_raw, work_format=job.work_format,
+            remote_scope=job.remote_scope, countries=json.dumps(job.countries),
+            timezones=json.dumps(job.timezones), seniority=job.seniority,
+            stack=json.dumps(job.stack),
+            published_at=_iso(job.published_at) if job.published_at else None,
+            last_seen_at=now_s, hidden_reason=hidden_reason)
         if is_new:
-            usd = _salary_usd_month(conn, job.salary_min, job.salary_max,
-                                    job.salary_currency, job.salary_period)
-            cols = dict(
-                dedup_key=key, source_primary=job.source, title=job.title, company=job.company,
-                lang=job.lang, url=job.url, description_html=job.description_html,
-                description_text=job.description_text, salary_raw=job.salary_raw,
-                salary_min=job.salary_min, salary_max=job.salary_max,
-                salary_currency=job.salary_currency, salary_period=job.salary_period,
-                salary_usd_month=usd, location_raw=job.location_raw, work_format=job.work_format,
-                remote_scope=job.remote_scope, countries=json.dumps(job.countries),
-                timezones=json.dumps(job.timezones), seniority=job.seniority,
-                stack=json.dumps(job.stack), published_at=published,
-                first_seen_at=now_s, last_seen_at=now_s, hidden_reason=hidden_reason)
+            f.update(source_primary=job.source, url=job.url, first_seen_at=now_s)
             cur = conn.execute(
-                f"INSERT INTO jobs({', '.join(cols)}) VALUES({', '.join('?' * len(cols))})",
-                list(cols.values()))
+                f"INSERT INTO jobs({', '.join(f)}) VALUES({', '.join('?' * len(f))})",
+                list(f.values()))
             job_id = cur.lastrowid
         else:
-            old = conn.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
-
-            def keep(name, new):
-                return new if new is not None else old[name]
-
-            def keep_list(name, new):
-                return json.dumps(new) if new else (old[name] or "[]")
-
-            f = {n: keep(n, getattr(job, n)) for n in (
-                "company", "salary_raw", "salary_min", "salary_max", "salary_currency",
-                "salary_period", "location_raw", "work_format", "seniority")}
-            f["published_at"] = keep("published_at", published)
-            f["countries"] = keep_list("countries", job.countries)
-            f["timezones"] = keep_list("timezones", job.timezones)
-            f["stack"] = keep_list("stack", job.stack)
-            f["salary_usd_month"] = _salary_usd_month(
-                conn, f["salary_min"], f["salary_max"], f["salary_currency"], f["salary_period"])
-            f["dedup_key"] = dedup_key(f["company"], job.title)
-            f["title"] = job.title
-            f["lang"] = job.lang
-            f["remote_scope"] = job.remote_scope
-            f["hidden_reason"] = hidden_reason
-            if len(job.description_html or "") >= len(old["description_html"] or ""):
-                f["description_html"] = job.description_html
-                f["description_text"] = job.description_text
-            f["last_seen_at"] = now_s
             f["archived_at"] = None
             sets = ", ".join(f"{k}=?" for k in f)
             conn.execute(f"UPDATE jobs SET {sets} WHERE id=?", [*f.values(), job_id])
@@ -243,7 +284,9 @@ def update_job_fields(conn: sqlite3.Connection, job_id: int, job: Job,
     f = dict(
         dedup_key=dedup_key(job.company, job.title), title=job.title, company=job.company,
         lang=job.lang, description_html=job.description_html,
-        description_text=job.description_text, salary_raw=job.salary_raw,
+        description_text=job.description_text,
+        description_detail=None if job.description_detail is None else int(job.description_detail),
+        salary_raw=job.salary_raw,
         salary_min=job.salary_min, salary_max=job.salary_max,
         salary_currency=job.salary_currency, salary_period=job.salary_period,
         salary_usd_month=_salary_usd_month(conn, job.salary_min, job.salary_max,

@@ -62,12 +62,15 @@ def describe_new(jobs: list[Job], known: set[str], wants: Callable[[Job], bool],
     for i, job in enumerate(jobs):
         if job.source_id in known or not wants(job):
             continue
+        before = job.description_html
         try:
             describe(job)
         except SourceBlocked as e:
             left = sum(1 for j in jobs[i:] if j.source_id not in known and wants(j))
             log.warning("%s: %s, %d вакансий сохранены без полного описания", source, e, left)
             return jobs
+        if job.description_html and job.description_html != before:
+            job.description_detail = True
     return jobs
 
 

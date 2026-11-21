@@ -190,3 +190,16 @@ def test_workingnomads_fetch():
         client(lambda r: httpx.Response(200, json=load("workingnomads.json"))),
         set(), lambda j: True, {"max_pages": 5})
     assert 0 < len(jobs) < 35
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("Russia only", ("restricted", [])),          # no CIS exemption without KZ
+    ("Russia, Belarus only", ("restricted", [])),
+    ("Kazakhstan, Russia only", ("countries", ["KZ", "RU"])),
+    ("USA only", ("restricted", [])),
+    ("Russia", ("countries", ["RU"])),            # a plain list: the filter checks for KZ
+    ("Worldwide", ("worldwide", [])),
+])
+def test_scope_from_location_only(text, expected):
+    from jobfinder.sources.geo import scope_from_location
+    assert scope_from_location(text) == expected

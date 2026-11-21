@@ -34,11 +34,16 @@ class RunResult:
     error: str | None
 
 
+def _classify(job: Job, cfg: FilterConfig) -> str | None:
+    """Set scope/countries of a normalized job in place; return hidden_reason."""
+    job.remote_scope, job.countries = classify_scope(job, cfg.country)
+    return hidden_reason(job, cfg)
+
+
 def _prepare(job: Job, cfg: FilterConfig) -> str | None:
     """Normalize in place, set scope/countries; return hidden_reason."""
     normalize_job(job)
-    job.remote_scope, job.countries = classify_scope(job)
-    return hidden_reason(job, cfg)
+    return _classify(job, cfg)
 
 
 def _error_text(exc: Exception) -> str:
@@ -48,7 +53,8 @@ def _error_text(exc: Exception) -> str:
 
 
 def lock_path(db_path: Path | str) -> Path:
-    return Path(f"{db_path}.collect.lock")
+    # resolved, so a symlinked path and the connection's own path share one lock
+    return Path(f"{Path(db_path).resolve()}.collect.lock")
 
 
 def db_file(conn) -> Path | None:
@@ -155,8 +161,11 @@ def _run_one(conn, source: Source, name: str, now_fn, client_factory) -> RunResu
                 skipped += 1
                 continue
             try:
-                reason = _prepare(job, cfg)
-                _, is_new = db.upsert_job(conn, job, reason, now_fn())
+                normalize_job(job)
+                # scope and hide reason come from the merged record: a listing item without
+                # its detail text must not undo a hide found in the stored description
+                _, is_new = db.upsert_job(conn, job, None, now_fn(),
+                                          reason_fn=lambda j: _classify(j, cfg))
             except Exception:
                 log.warning("%s: не удалось сохранить вакансию %s", name, job.source_id, exc_info=True)
                 skipped += 1

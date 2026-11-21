@@ -36,10 +36,12 @@ def _any(text: str, phrases: list[str]) -> bool:
     return any(_has(text, p) for p in phrases)
 
 
-def classify_scope(job: Job) -> tuple[str, list[str]]:
+def classify_scope(job: Job, country: str = "KZ") -> tuple[str, list[str]]:
+    """(remote_scope, countries). A country list is «СНГ» only when it is all CIS and
+    includes the user's `country`: «Russia only» is not available from Kazakhstan."""
     if job.countries:
-        scope = "cis" if all(c in CIS for c in job.countries) else "countries"
-        return scope, list(job.countries)
+        cis = country in job.countries and all(c in CIS for c in job.countries)
+        return ("cis" if cis else "countries"), list(job.countries)
     if job.remote_scope not in ("unknown", "countries"):
         return job.remote_scope, []
 
@@ -72,11 +74,17 @@ def hidden_reason(job: Job, cfg: FilterConfig) -> str | None:
 
     if job.remote_scope == "restricted":
         return "restricted"
-    if job.remote_scope == "countries" and job.countries and cfg.country not in job.countries:
+    if job.countries and cfg.country not in job.countries:  # whatever the scope
         return "restricted"
 
-    haystack = f"{job.title} {job.description_text or ''}"
-    for w in cfg.stopwords:
+    return stopword_reason(job.title, job.description_text, cfg.stopwords)
+
+
+def stopword_reason(title: str | None, description_text: str | None,
+                    stopwords: list[str]) -> str | None:
+    """`stopword:<word>` for the first stopword found in the title or description."""
+    haystack = f"{title or ''} {description_text or ''}"
+    for w in stopwords:
         if w and _has(haystack, w):
             return f"stopword:{w.lower()}"
     return None
@@ -90,6 +98,9 @@ NON_IT_ROLE_WORDS = [
     "support specialist", "recruiter", "art director", "creative director", "copywriter",
     "content writer", "community manager", "proposal", "executive assistant",
     "office manager", "nurse", "therapist", "physician", "teacher", "accountant",
+    # Russian; a trailing * matches any ending («маркетолог*» → «маркетологом»)
+    "маркетолог*", "бухгалтер*", "рекрутер*", "менеджер* по работе с клиентами",
+    "по развитию бизнеса",
 ]
 # Domain words: non-IT only when the title has no strong IT noun
 # ("Medical Software Engineer" stays, "Medical Billing Specialist" goes).
@@ -98,11 +109,16 @@ NON_IT_DOMAIN_WORDS = [
     "talent", "people partner", "clinical", "medical", "tutor", "operations manager",
     "compensation", "internal controls", "sox", "media specialist", "support engineer",
     "solutions engineer", "solutions consultant",
+    "продаж*",  # «Менеджер по продажам» goes, «Разработчик CRM для отдела продаж» stays
 ]
 
 
+def _word_pattern(w: str) -> str:
+    return re.escape(w).replace(r"\*", r"\w*")
+
+
 def _words_re(words: list[str]) -> re.Pattern:
-    return re.compile(r"(?<!\w)(?:" + "|".join(re.escape(w) for w in words) + r")(?!\w)",
+    return re.compile(r"(?<!\w)(?:" + "|".join(_word_pattern(w) for w in words) + r")(?!\w)",
                       re.IGNORECASE)
 
 
@@ -111,7 +127,8 @@ _DOMAIN_RE = _words_re(NON_IT_DOMAIN_WORDS)
 _STRONG_IT_RE = re.compile(
     r"(?<!\w)(?:software|developer|programmer|devops|sre|site reliability|back-?end|"
     r"front-?end|full[ -]?stack|data (?:engineer|scientist)|machine learning|ml|platform|"
-    r"infrastructure|cloud|security|qa|it|tech|linux|kernel)(?!\w)", re.IGNORECASE)
+    r"infrastructure|cloud|security|qa|it|tech|linux|kernel|"
+    r"разработ\w*|программист\w*|тестировщик\w*)(?!\w)", re.IGNORECASE)
 
 
 def is_non_it_title(title: str) -> bool:

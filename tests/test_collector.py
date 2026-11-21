@@ -164,9 +164,9 @@ def test_settings_persisted_after_upserts(conn, monkeypatch):
     orig = dbm.upsert_job
     seen = []
 
-    def spy(c, job, reason, now):
+    def spy(c, job, reason, now, **kw):
         seen.append(get_setting(c, "hn_last_story"))
-        return orig(c, job, reason, now)
+        return orig(c, job, reason, now, **kw)
 
     monkeypatch.setattr(collector.db, "upsert_job", spy)
 
@@ -183,10 +183,10 @@ def test_settings_persisted_after_upserts(conn, monkeypatch):
 def test_per_job_failure_isolated(conn, monkeypatch):
     orig = collector.db.upsert_job
 
-    def flaky(c, job, reason, now):
+    def flaky(c, job, reason, now, **kw):
         if job.source_id == "1":
             raise RuntimeError("x")
-        return orig(c, job, reason, now)
+        return orig(c, job, reason, now, **kw)
 
     monkeypatch.setattr(collector.db, "upsert_job", flaky)
     res = run(conn, {"s1": Fixed("s1", [mk(), mk(source_id="2")])})
@@ -273,3 +273,94 @@ def test_detail_block_on_two_pages_keeps_all_jobs_and_next_run_stops(conn):
     details.clear()
     res = collect(conn, sources={"habr": habr.SOURCE}, client_factory=factory)
     assert res[0].ok and res[0].new == 0 and details == []
+
+
+def _habr_twice(conn, detail_text, stopwords=()):
+    """Collect one habr item twice: run 1 loads its detail page, run 2 only lists it."""
+    fix = Path(__file__).parent / "fixtures"
+    items = json.loads((fix / "habr.json").read_text(encoding="utf-8"))["list"]
+    item = next(i for i in items if i["title"] == "Middle Golang Разработчик")
+    detail = f'<html><div class="vacancy-description__text"><p>{detail_text}</p></div></html>'
+    details = []
+
+    def handler(req):
+        if req.url.path == "/api/frontend/vacancies":
+            page = [item] if req.url.params["page"] == "1" else []
+            return httpx.Response(200, json={"list": page, "meta": {}})
+        details.append(req.url.path)
+        return httpx.Response(200, text=detail, headers={"content-type": "text/html"})
+
+    def factory():
+        return PoliteClient(transport=httpx.MockTransport(handler), sleep=lambda s: None)
+
+    set_setting(conn, "stopwords", list(stopwords))
+    sid = str(item["id"])
+    state = []
+    for _ in range(2):
+        res = collect(conn, sources={"habr": habr.SOURCE}, client_factory=factory)
+        assert res[0].ok
+        state.append(dict(conn.execute(
+            "SELECT j.hidden_reason, j.remote_scope, j.description_html, j.description_detail "
+            "FROM jobs j JOIN postings p ON p.job_id=j.id WHERE p.source='habr' AND p.source_id=?",
+            (sid,)).fetchone()))
+    assert len(details) == 1  # the second run did not ask for the detail page
+    return state
+
+
+def test_detail_restriction_survives_listing_only_recollect(conn):
+    first, second = _habr_twice(conn, "Go backend. Гражданство и локация: только РФ.")
+    assert first["hidden_reason"] == "restricted" and first["remote_scope"] == "restricted"
+    assert second["hidden_reason"] == "restricted" and second["remote_scope"] == "restricted"
+    assert "только РФ" in second["description_html"] and second["description_detail"] == 1
+
+
+def test_detail_stopword_survives_listing_only_recollect(conn):
+    first, second = _habr_twice(conn, "Go backend, немного интеграций с 1С.", stopwords=["1С"])
+    assert first["hidden_reason"] == second["hidden_reason"] == "stopword:1с"
+
+
+def _merged(conn):
+    rows = conn.execute("SELECT hidden_reason, remote_scope, countries FROM jobs").fetchall()
+    assert len(rows) == 1  # both postings merged into one job
+    return rows[0]["hidden_reason"], rows[0]["remote_scope"], json.loads(rows[0]["countries"])
+
+
+def test_cross_source_merge_hide_reason_independent_of_order(tmp_path):
+    from jobfinder.db import connect
+    long_ru = mk(source="a", source_id="1",
+                 description_html="<p>Python backend. Гражданство: только РФ. " + "x" * 300 + "</p>")
+    bare = mk(source="b", source_id="2", url="https://y/2")
+    kz = mk(source="c", source_id="3", url="https://z/3", countries=["KZ", "RU"])
+    results = []
+    for order in ([long_ru, bare], [bare, long_ru]):
+        conn = connect(tmp_path / f"{order[0].source}.db")
+        for job in order:
+            run(conn, {job.source: Fixed(job.source, [job.__class__(**vars(job))])})
+        results.append(_merged(conn))
+        conn.close()
+    assert results[0] == results[1] == ("restricted", "restricted", [])
+    # a structured country list kept from another source still decides the scope
+    conn = connect(tmp_path / "kz.db")
+    for job in (kz, bare):
+        run(conn, {job.source: Fixed(job.source, [job.__class__(**vars(job))])})
+    assert _merged(conn) == (None, "cis", ["KZ", "RU"])
+    conn.close()
+
+
+def test_is_running_through_symlinked_dir(tmp_path):
+    """The CLI/web probe the configured (symlinked) path; collect locks the connection's path."""
+    from jobfinder.db import connect
+    real = tmp_path / "real"
+    real.mkdir()
+    link = tmp_path / "link"
+    link.symlink_to(real, target_is_directory=True)
+    conn = connect(link / "j.db")
+    try:
+        with collector.file_lock(collector.db_file(conn)) as acquired:
+            assert acquired
+            assert collector.is_running(link / "j.db")
+            assert collector.is_running(real / "j.db")
+        assert not collector.is_running(link / "j.db")
+        assert collector.lock_path(link / "j.db") == collector.lock_path(real / "j.db")
+    finally:
+        conn.close()

@@ -98,3 +98,45 @@ def test_domain_word_with_it_noun_stays_it(title):
     "Staff Accountant", "Operations Manager", "Medical Billing Specialist"])
 def test_role_words_always_non_it(title):
     assert is_non_it_title(title) is True
+
+
+def _country_reason(countries=None, desc=""):
+    """Scope and hide reason the collector computes for a job (KZ user)."""
+    j = mk(remote_scope="countries" if countries else "unknown", countries=countries or [],
+           location_raw="Remote", description_text=desc)
+    j.remote_scope, j.countries = classify_scope(j, "KZ")
+    return j.remote_scope, hidden_reason(j, FilterConfig(country="KZ"))
+
+
+@pytest.mark.parametrize("countries,desc,scope,reason", [
+    (["RU"], "", "countries", "restricted"),            # Russia only: not available from KZ
+    (["RU", "BY"], "", "countries", "restricted"),      # CIS countries without KZ
+    (["KZ", "RU"], "", "cis", None),
+    (["KZ"], "", "cis", None),
+    (["US", "KZ"], "", "countries", None),
+    (["US"], "", "countries", "restricted"),
+    (None, "Работа из любой точки СНГ", "cis", None),  # text-detected «СНГ» stays visible
+])
+def test_country_list_must_contain_user_country(countries, desc, scope, reason):
+    assert _country_reason(countries, desc) == (scope, reason)
+
+
+def test_user_country_in_list_whatever_the_scope():
+    cfg = FilterConfig(country="KZ")
+    assert hidden_reason(mk(remote_scope="cis", countries=["RU"]), cfg) == "restricted"
+    assert hidden_reason(mk(remote_scope="worldwide", countries=["RU"]), cfg) == "restricted"
+    # «СНГ» for a list depends on the user's country
+    assert classify_scope(mk(countries=["RU"]), "RU") == ("cis", ["RU"])
+    assert classify_scope(mk(countries=["RU"]), "KZ") == ("countries", ["RU"])
+
+
+@pytest.mark.parametrize("title,expected", [
+    ("Менеджер по продажам", True), ("Маркетолог", True), ("Бухгалтер", True),
+    ("Рекрутер в IT", True), ("Менеджер по работе с клиентами", True),
+    ("Менеджер по развитию бизнеса (Сибирь)", True), ("Директор по продажам", True),
+    ("Python-разработчик", False), ("Разработчик CRM для отдела продаж", False),
+    ("Программист платформы продаж", False), ("Аналитик данных", False),
+    ("Системный аналитик", False), ("Тестировщик", False),
+])
+def test_non_it_russian_titles(title, expected):
+    assert is_non_it_title(title) is expected

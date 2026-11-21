@@ -18,6 +18,9 @@ class Job:
     lang: str = "en"
     description_html: str = ""
     description_text: str = ""
+    # True when the description came from a detail page (raw keeps only the listing item);
+    # None for rows stored before this was tracked
+    description_detail: bool | None = False
     salary_raw: str | None = None
     salary_min: int | None = None
     salary_max: int | None = None
