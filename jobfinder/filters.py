@@ -128,7 +128,7 @@ _STRONG_IT_RE = re.compile(
     r"(?<!\w)(?:software|developer|programmer|devops|sre|site reliability|back-?end|"
     r"front-?end|full[ -]?stack|data (?:engineer|scientist)|machine learning|ml|platform|"
     r"infrastructure|cloud|security|qa|it|tech|linux|kernel|"
-    r"разработ\w*|программист\w*|тестировщик\w*)(?!\w)", re.IGNORECASE)
+    r"разработ\w*|программист\w*|тестировщик\w*|аналитик\w*)(?!\w)", re.IGNORECASE)
 
 
 def is_non_it_title(title: str) -> bool:

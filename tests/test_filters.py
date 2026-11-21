@@ -137,6 +137,7 @@ def test_user_country_in_list_whatever_the_scope():
     ("Python-разработчик", False), ("Разработчик CRM для отдела продаж", False),
     ("Программист платформы продаж", False), ("Аналитик данных", False),
     ("Системный аналитик", False), ("Тестировщик", False),
+    ("Системный аналитик (CRM, продажи)", False), ("Аналитик BI продаж", False),
 ])
 def test_non_it_russian_titles(title, expected):
     assert is_non_it_title(title) is expected
