@@ -132,6 +132,15 @@ def test_hn_header_split():
     assert hn.SOURCE.parse_item({**item, "comment_text": "Acme | Dev | Berlin<p>onsite"}) is None
 
 
+def test_hn_header_strips_tags():
+    item = {"objectID": "7", "created_at_i": 1795268159, "story_id": 1, "parent_id": 1,
+            "comment_text": 'Don&#x27;t Use This Code: <a href="https://dutc.io" rel="nofollow">'
+                            'https://dutc.io</a> | <i>Python Trainer</i> | REMOTE<p>Details'}
+    job = hn.SOURCE.parse_item(item)
+    assert job.company == "Don't Use This Code: https://dutc.io"
+    assert job.title == "Python Trainer" and job.location_raw == "REMOTE"
+
+
 def test_hn_latest_story():
     assert hn.latest_story_id(json.loads(text("hn_stories.json"))) == "50338728"
     with pytest.raises(ParseError):

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import html as htmllib
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
@@ -42,7 +41,7 @@ def parse_payload(payload) -> list[dict]:
 
 def _first_line(comment_html: str) -> str:
     head = comment_html.split("<p>", 1)[0]
-    return " ".join(htmllib.unescape(head).split())
+    return " ".join(html_to_text(head).split())  # drops <a>/<i> tags, unescapes entities
 
 
 class HackerNews(Source):
