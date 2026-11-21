@@ -141,3 +141,17 @@ def test_user_country_in_list_whatever_the_scope():
 ])
 def test_non_it_russian_titles(title, expected):
     assert is_non_it_title(title) is expected
+
+
+@pytest.mark.parametrize("loc,scope", [
+    ("REMOTE (US)", "restricted"), ("√ REMOTE (US)", "restricted"),
+    ("REMOTE (US & US Citizen)", "restricted"), ("Remote - Europe", "restricted"),
+    ("REMOTE (UK)", "restricted"), ("LATAM", "restricted"), ("North America", "restricted"),
+    ("Europe, LATAM, APAC, the U.S., Canada", "restricted"), ("REMOTE (Brazil)", "restricted"),
+    ("Remote", "unknown"), ("REMOTE or ONSITE", "unknown"), ("Москва", "unknown"),
+    ("Remote (EMEA)", "unknown"), ("Remote (Asia)", "unknown"), ("Full-time", "unknown"),
+    ("Remote (US, Kazakhstan)", "cis"), ("Remote (Worldwide)", "worldwide"),
+    ("Remote (CIS)", "cis"), ("Remote or onsite (US + many countries)", "unknown"),
+])
+def test_region_limited_remote_is_restricted(loc, scope):
+    assert classify_scope(mk(location_raw=loc, remote_scope="unknown"), "KZ")[0] == scope

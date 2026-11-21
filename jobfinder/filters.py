@@ -21,6 +21,16 @@ OFFICE_DAYS_RE = re.compile(r"(?<!\w)\d\s*days?\b[\w\s/]{0,12}?\bin(?:\s+the)?\s
 OFFICE_RE = re.compile(r"(?<!\w)(?:on-site|onsite|офис\w*)(?!\w)", re.IGNORECASE)
 REMOTE_RE = re.compile(r"(?<!\w)(?:remote|удал[её]н\w*)(?!\w)", re.IGNORECASE)
 
+# Regions that never include Kazakhstan: "Remote (Europe)", "LATAM" are not open to KZ.
+# EMEA, Asia, CIS are left out on purpose: they may include KZ.
+REGIONS_WITHOUT_KZ = {
+    "europe", "eu", "european union", "western europe", "eastern europe", "central europe",
+    "nordics", "scandinavia", "dach", "benelux", "latam", "latin america", "north america",
+    "south america", "americas", "apac", "asia pacific", "oceania", "africa", "middle east", "mena",
+}
+_LOC_NOISE = re.compile(r"\b(?:remote(?:ly)?|only|based|residents?|citizens?|citizenship|"
+                        r"candidates?|the|in|from)\b")
+
 
 @dataclass
 class FilterConfig:
@@ -51,6 +61,8 @@ def classify_scope(job: Job, country: str = "KZ") -> tuple[str, list[str]]:
 
     if _any(f"{loc} {desc[:400]}", RESTRICTED):
         return "restricted", []
+    if _region_limited(loc, country):
+        return "restricted", []
     if _any(full, WORLDWIDE):
         return "worldwide", []
     if _any(full, CIS_PHRASES):
@@ -58,6 +70,27 @@ def classify_scope(job: Job, country: str = "KZ") -> tuple[str, list[str]]:
     if _any(full, RESTRICTED):
         return "restricted", []
     return "unknown", []
+
+
+def _region_limited(loc: str, country: str) -> bool:
+    """True when the location names only countries/regions and none of them is `country`:
+    "REMOTE (US)", "Remote - Europe", "Europe, LATAM, the U.S." -> True; "Remote", "Москва",
+    "Remote (EMEA)", "US + many countries" -> False (anything unrecognised means unsure)."""
+    from .sources.geo import country_code  # lazy: jobfinder.sources imports this module
+
+    text = re.sub(r"[()\[\]√+&]", ",", loc.lower())
+    parts = re.split(r"[,;/|]|\band\b|\bor\b|\s-\s", text)
+    tokens = [t for t in (" ".join(_LOC_NOISE.sub(" ", p.replace(".", "")).split()).strip(" :-")
+                          for p in parts) if t]
+    if not tokens:
+        return False
+    for t in tokens:
+        if t in REGIONS_WITHOUT_KZ:
+            continue
+        code = country_code(t)
+        if code is None or code == country:
+            return False
+    return True
 
 
 def hidden_reason(job: Job, cfg: FilterConfig) -> str | None:

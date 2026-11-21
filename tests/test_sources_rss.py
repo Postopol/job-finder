@@ -215,3 +215,21 @@ def test_wwr_non_it_hidden():
     assert r["Manager, Sales Compensation"] == "non_it"
     assert r["Associate Manager, SOX and Internal Controls"] == "non_it"
     assert r["Senior Platform Engineer"] is None and r["Machine Learning Engineer"] is None
+
+
+def _hn(text_):
+    return hn.SOURCE.parse_item({"objectID": "9", "created_at_i": 1795268159, "story_id": 1,
+                                 "parent_id": 1, "comment_text": text_})
+
+
+def test_hn_skips_job_seeker_posts():
+    assert _hn("Location: India (IST) Remote: Yes (Worldwide) Willing to relocate: Yes<p>Hi") is None
+
+
+def test_hn_title_skips_url_and_location_parts():
+    job = _hn("LiveKit | http://livekit.io/ | Senior Engineer | Remote<p>x")
+    assert job.title == "Senior Engineer"
+    job = _hn("Acme | REMOTE (US) | Backend Engineer<p>x")
+    assert job.title == "Backend Engineer" and job.location_raw == "REMOTE (US)"
+    job = _hn("Acme | Athens, Greece | Data Engineer | REMOTE<p>x")
+    assert job.title == "Data Engineer"

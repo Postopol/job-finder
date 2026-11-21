@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
@@ -8,7 +9,7 @@ from ..models import Job
 from ..normalize import html_to_text
 from . import register
 from .base import ParseError, Source
-from .geo import scope_from_location, utc_from_epoch, utc_from_iso
+from .geo import country_code, scope_from_location, utc_from_epoch, utc_from_iso
 
 STORIES_URL = ("https://hn.algolia.com/api/v1/search_by_date"
                "?tags=story,author_whoishiring&hitsPerPage=5")
@@ -44,6 +45,17 @@ def _first_line(comment_html: str) -> str:
     return " ".join(html_to_text(head).split())  # drops <a>/<i> tags, unescapes entities
 
 
+_PLACE_WORDS = re.compile(r"(?<!\w)(?:remote|onsite|on-site|hybrid)(?!\w)", re.I)
+
+
+def _not_a_title(part: str) -> bool:
+    """A header part that is a URL or a place ("REMOTE (US)", "Athens, Greece"), not a role."""
+    low = part.lower()
+    if low.startswith(("http://", "https://", "www.")) or _PLACE_WORDS.search(low):
+        return True
+    return country_code(part.split(",")[-1]) is not None
+
+
 class HackerNews(Source):
     name = "hn"
     lang = "en"
@@ -59,11 +71,14 @@ class HackerNews(Source):
             if not oid or not body or "remote" not in html_to_text(body).lower():
                 return None
             line = _first_line(body)
-            if not line or line.lower().startswith("seeking"):
+            # "SEEKING WORK" and the seeker template "Location: ... Remote: ... Willing to relocate"
+            if not line or line.lower().startswith(("seeking", "location:")):
                 return None
             parts = [p.strip() for p in line.split("|") if p.strip()]
             if len(parts) >= 2:
-                company, title, rest = parts[0], parts[1], parts[2:]
+                company = parts[0]
+                title = next((p for p in parts[1:] if not _not_a_title(p)), parts[1])
+                rest = [p for p in parts[1:] if p is not title]
                 location = next((p for p in rest if "remote" in p.lower()),
                                 rest[0] if rest else None)
             else:
