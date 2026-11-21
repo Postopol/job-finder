@@ -45,6 +45,9 @@ def test_hidden_reason(job, reason):
     (None, "Senior Developer, hybrid mobile apps", None),
     (None, "Platform Engineer - hybrid in Warsaw", "hybrid"),
     (None, "Cloud Engineer (Hybrid)", "hybrid"),
+    (None, "Инженер, гибридное облако", None),
+    ("Hybrid cloud, 3 days in office", "Python", "hybrid"),
+    ("Berlin, 2 days a week in the office", "Python", "hybrid"),
 ])
 def test_format_words(loc, title, reason):
     assert hidden_reason(mk(location_raw=loc, title=title), FilterConfig()) == reason

@@ -23,7 +23,8 @@ class FakeSource(Source):
         return Job(source=self.name, source_id=str(item["id"]), url="https://x/" + str(item["id"]),
                    title=self.title, company="Acme", salary_min=item.get("sal"),
                    salary_max=item.get("sal"), salary_currency="USD" if item.get("sal") else None,
-                   salary_period="month" if item.get("sal") else None)
+                   salary_period="month" if item.get("sal") else None,
+                   description_html=item.get("desc") or "")
 
     def fetch(self, client, known, wants, settings):
         return []
@@ -199,3 +200,13 @@ def test_reparse_keeps_detail_description_and_filters_on_it(conn, now):
     assert j["title"] == "Reparsed Title"
     assert j["description_html"] == detail
     assert j["hidden_reason"] == "restricted"
+
+
+def test_reparse_shorter_real_description_replaces_old(conn, now):
+    jid, _ = db.upsert_job(conn, mk(raw={"id": 1, "desc": "<p>Short fixed text</p>"},
+                                    description_html="<p>Long old text " + "x" * 200 + "</p>"),
+                           None, now)
+    assert archive.reparse(conn, None, {"s1": FakeSource("s1")}) == 1
+    j = db.get_job(conn, jid)
+    assert j["description_html"] == "<p>Short fixed text</p>"
+    assert j["description_text"] == "Short fixed text"

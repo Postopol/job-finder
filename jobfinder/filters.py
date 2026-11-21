@@ -16,6 +16,8 @@ CIS_PHRASES = ["снг", "cis", "казахстан", "kazakhstan", "из люб
 # "Hybrid Cloud Engineer", "hybrid mobile apps" are tech terms, not a work format
 HYBRID_RE = re.compile(r"(?<!\w)(?:hybrid|гибрид\w*)(?!\w)(?!\s+(?:cloud|mobile|apps?|облак\w*)(?!\w))",
                        re.IGNORECASE)
+# "3 days in office", "2 days a week in the office": a hybrid schedule
+OFFICE_DAYS_RE = re.compile(r"(?<!\w)\d\s*days?\b[\w\s/]{0,12}?\bin(?:\s+the)?\s+office(?!\w)", re.IGNORECASE)
 OFFICE_RE = re.compile(r"(?<!\w)(?:on-site|onsite|офис\w*)(?!\w)", re.IGNORECASE)
 REMOTE_RE = re.compile(r"(?<!\w)(?:remote|удал[её]н\w*)(?!\w)", re.IGNORECASE)
 
@@ -60,7 +62,7 @@ def hidden_reason(job: Job, cfg: FilterConfig) -> str | None:
     if job.work_format in ("hybrid", "office"):
         return job.work_format
     text = f"{job.location_raw or ''} {job.title}"
-    if HYBRID_RE.search(text):
+    if HYBRID_RE.search(text) or OFFICE_DAYS_RE.search(text):
         return "hybrid"
     if OFFICE_RE.search(text) and not REMOTE_RE.search(text):
         return "office"

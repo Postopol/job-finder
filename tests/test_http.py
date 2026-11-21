@@ -130,20 +130,20 @@ def _job(sid):
     return Job(source="s", source_id=sid, url=f"https://x/{sid}", title=f"Dev {sid}")
 
 
-def test_describe_new_stops_on_block_and_defers_undescribed():
+def test_describe_new_stops_on_block_and_keeps_every_job():
     jobs = [_job("a"), _job("known"), _job("b"), _job("hidden"), _job("c")]
-    described = []
+    calls = []
 
     def describe(job):
-        if len(described) == 1:
+        calls.append(job.source_id)
+        if len(calls) == 2:
             raise SourceBlocked(429)
-        described.append(job.source_id)
         job.description_text = "full"
 
     out = base.describe_new(jobs, {"known"}, lambda j: j.source_id != "hidden", describe, "s")
-    # "a" described, "known" and filtered-out "hidden" kept, "b"/"c" left for the next run
-    assert [j.source_id for j in out] == ["a", "known", "hidden"]
-    assert described == ["a"]
+    # no detail request after the block, but all listed jobs are returned
+    assert out == jobs and calls == ["a", "b"]
+    assert [j.description_text for j in out] == ["full", "", "", "", ""]
 
 
 def test_describe_new_describes_only_new_wanted():

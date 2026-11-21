@@ -167,7 +167,7 @@ def _run_one(conn, source: Source, name: str, now_fn, client_factory) -> RunResu
                 db.set_setting(conn, key, value)
         blocked = getattr(client, "blocked", None)
         if blocked:  # the source stopped early on 429/403 but returned what it had
-            note = f"сайт ограничил доступ (HTTP {blocked}), остальное — в следующий сбор"
+            note = f"сайт ограничил доступ (HTTP {blocked}), часть вакансий без полного описания"
     except Exception as exc:
         error = _error_text(exc)
     finally:

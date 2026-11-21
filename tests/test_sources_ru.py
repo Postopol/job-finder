@@ -191,7 +191,7 @@ def test_hh_pages_until_repeat_or_empty():
 
 
 @pytest.mark.parametrize("withtoken", [True, False])
-def test_hh_detail_failure_keeps_job_and_block_defers_new(withtoken, caplog):
+def test_hh_detail_failure_and_block_keep_jobs(withtoken, caplog):
     settings = {"hh_token": "T"} if withtoken else {}
 
     def listing(req):
@@ -210,12 +210,9 @@ def test_hh_detail_failure_keeps_job_and_block_defers_new(withtoken, caplog):
         return listing(req) or httpx.Response(429)
 
     c = client(h429)
-    listed = hh.SOURCE.fetch(c, set(), lambda j: False, {**settings, "max_pages": 1})
-    assert hh.SOURCE.fetch(c, set(), lambda j: True, {**settings, "max_pages": 1}) == []
+    blocked = hh.SOURCE.fetch(c, set(), lambda j: True, {**settings, "max_pages": 1})
     assert c.blocked == 429
-    known = {j.source_id for j in listed}  # known jobs need no details and survive the block
-    assert len(hh.SOURCE.fetch(client(h429), known, lambda j: True, {**settings, "max_pages": 1})) \
-        == len(listed)
+    assert [j.source_id for j in blocked] == [j.source_id for j in jobs]
 
 
 def test_hh_detail_layout_change_warns(caplog):
@@ -341,6 +338,11 @@ def test_hh_page_hourly_salary_uses_per_mode_amounts():
     monthly = {**item, "compensation": {"from": 514285, "currencyCode": "RUR", "mode": "HOUR"}}
     job = hh.SOURCE.parse_item(monthly)
     assert (job.salary_min, job.salary_period) == (514285, "month")
+    # per-mode keys present but empty: fall back to from/to, keep the salary
+    empty = {**item, "compensation": {"from": 300000, "to": 400000, "currencyCode": "RUR",
+                                      "perModeFrom": None, "perModeTo": None, "mode": "MONTH"}}
+    job = hh.SOURCE.parse_item(empty)
+    assert (job.salary_min, job.salary_max, job.salary_period) == (300000, 400000, "month")
 
 
 def test_hh_api_non_remote_dropped():

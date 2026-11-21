@@ -121,7 +121,7 @@ class Hh(Source):
             return None
         comp = item.get("compensation") if isinstance(item.get("compensation"), dict) else {}
         # from/to are hh's monthly estimate; the rate in the vacancy's own mode is perModeFrom/To
-        if "perModeFrom" in comp or "perModeTo" in comp:
+        if comp.get("perModeFrom") is not None or comp.get("perModeTo") is not None:
             lo, hi, mode = comp.get("perModeFrom"), comp.get("perModeTo"), comp.get("mode", "MONTH")
         else:
             lo, hi, mode = comp.get("from"), comp.get("to"), "MONTH"

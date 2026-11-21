@@ -56,8 +56,8 @@ def describe_new(jobs: list[Job], known: set[str], wants: Callable[[Job], bool],
                  describe: Callable[[Job], None], source: str) -> list[Job]:
     """Load details for new jobs that pass the filter.
 
-    On 429/403 stop asking the site: keep what was already described, drop the new
-    jobs still waiting for details (the next run finds them again as new).
+    On 429/403 stop asking the site but keep every listed job: the rest are saved
+    with what the listing gave (a vacancy matters more than its full description).
     """
     for i, job in enumerate(jobs):
         if job.source_id in known or not wants(job):
@@ -65,10 +65,9 @@ def describe_new(jobs: list[Job], known: set[str], wants: Callable[[Job], bool],
         try:
             describe(job)
         except SourceBlocked as e:
-            rest = [j for j in jobs[i:] if j.source_id in known or not wants(j)]
-            log.warning("%s: %s, описания остальных — в следующий сбор (%d отложено)",
-                        source, e, len(jobs) - i - len(rest))
-            return jobs[:i] + rest
+            left = sum(1 for j in jobs[i:] if j.source_id not in known and wants(j))
+            log.warning("%s: %s, %d вакансий сохранены без полного описания", source, e, left)
+            return jobs
     return jobs
 
 

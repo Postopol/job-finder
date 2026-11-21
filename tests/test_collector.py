@@ -1,9 +1,14 @@
+import json
 import threading
+from pathlib import Path
+
+import httpx
 
 from jobfinder import collector
 from jobfinder.collector import collect
 from jobfinder.db import get_setting, last_runs, set_setting
-from jobfinder.http import SourceBlocked, SourceError
+from jobfinder.http import PoliteClient, SourceBlocked, SourceError
+from jobfinder.sources import habr
 from jobfinder.sources.base import ParseError, Source
 from tests.conftest import mk
 
@@ -65,7 +70,7 @@ def test_partly_blocked_source_keeps_jobs_and_notes_block(conn):
     res = collect(conn, sources={"p": Fixed("p", [mk(source="p")])}, client_factory=BlockedClient)
     assert res[0].ok and res[0].new == 1 and "429" in res[0].error
     run_row = last_runs(conn)["p"]
-    assert run_row["ok"] == 1 and "следующий сбор" in run_row["error"]
+    assert run_row["ok"] == 1 and "без полного описания" in run_row["error"]
 
 
 def test_source_error_and_empty_message(conn):
@@ -235,3 +240,36 @@ def test_in_memory_db_skips_file_lock():
     mem = connect(":memory:")
     assert collector.db_file(mem) is None
     assert len(run(mem, {"good": Fixed("good", [mk(source="good")])})) == 1
+
+
+def test_detail_block_on_two_pages_keeps_all_jobs_and_next_run_stops(conn):
+    """habr: 2 list pages, details blocked after the first; every listed job is stored."""
+    fix = Path(__file__).parent / "fixtures"
+    items = json.loads((fix / "habr.json").read_text(encoding="utf-8"))["list"]
+    half = len(items) // 2
+    pages = {"1": items[:half], "2": items[half:]}
+    detail_html = (fix / "habr_detail.html").read_text(encoding="utf-8")
+    details = []
+
+    def handler(req):
+        if req.url.path == "/api/frontend/vacancies":
+            return httpx.Response(200, json={"list": pages.get(req.url.params["page"], []), "meta": {}})
+        details.append(req.url.path)
+        if len(details) > 1:
+            return httpx.Response(429)
+        return httpx.Response(200, text=detail_html, headers={"content-type": "text/html"})
+
+    def factory():
+        return PoliteClient(transport=httpx.MockTransport(handler), sleep=lambda s: None)
+
+    listed = [j for j in map(habr.SOURCE.parse_item, items) if j is not None]
+    assert {j.source_id for j in listed} & {str(i["id"]) for i in pages["2"]}  # page 2 matters
+    res = collect(conn, sources={"habr": habr.SOURCE}, client_factory=factory)
+    assert res[0].ok and "429" in res[0].error and len(details) == 2
+    stored = {r[0] for r in conn.execute("SELECT source_id FROM postings WHERE source='habr'")}
+    assert stored == {j.source_id for j in listed}
+
+    # next run: page 1 is known, paging stops, no lost jobs to come back for
+    details.clear()
+    res = collect(conn, sources={"habr": habr.SOURCE}, client_factory=factory)
+    assert res[0].ok and res[0].new == 0 and details == []

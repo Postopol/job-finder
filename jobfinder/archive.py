@@ -83,8 +83,10 @@ def _merge(jobs: list[Job]) -> Job:
 
 
 def _keep_description(old: dict, merged: Job) -> None:
-    """Detail pages are not saved in raw: a longer stored description came from one, keep it."""
-    if len(old["description_html"] or "") > len(merged.description_html or ""):
+    """Detail pages are not saved in raw: when the listing gave no description, keep the
+    stored one (it came from a detail page). A real reparsed description, even a shorter
+    one, replaces it."""
+    if not (merged.description_html or merged.description_text) and old["description_html"]:
         merged.description_html = old["description_html"]
         merged.description_text = old["description_text"]
 

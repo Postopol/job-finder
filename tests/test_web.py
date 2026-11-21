@@ -374,7 +374,7 @@ def test_sources_page_shows_last_error(client, conn):
 def test_sources_page_ok_run_with_block_note(client, conn):
     now = datetime.now(UTC)
     run = start_run(conn, "hirify", now)
-    finish_run(conn, run, True, 20, 20, "сайт ограничил доступ (HTTP 429), остальное — в следующий сбор", now)
+    finish_run(conn, run, True, 20, 20, "сайт ограничил доступ (HTTP 429), часть вакансий без полного описания", now)
     html = client.get("/sources").text
     assert "работает · сайт ограничил доступ (HTTP 429)" in html
 
