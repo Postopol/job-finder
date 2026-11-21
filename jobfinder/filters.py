@@ -13,7 +13,9 @@ WORLDWIDE = ["worldwide", "anywhere", "work from anywhere", "global",
              "весь мир", "любой стране", "любая страна"]
 CIS_PHRASES = ["снг", "cis", "казахстан", "kazakhstan", "из любой точки снг"]
 
-HYBRID_RE = re.compile(r"(?<!\w)(?:hybrid|гибрид\w*)(?!\w)", re.IGNORECASE)
+# "Hybrid Cloud Engineer", "hybrid mobile apps" are tech terms, not a work format
+HYBRID_RE = re.compile(r"(?<!\w)(?:hybrid|гибрид\w*)(?!\w)(?!\s+(?:cloud|mobile|apps?|облак\w*)(?!\w))",
+                       re.IGNORECASE)
 OFFICE_RE = re.compile(r"(?<!\w)(?:on-site|onsite|офис\w*)(?!\w)", re.IGNORECASE)
 REMOTE_RE = re.compile(r"(?<!\w)(?:remote|удал[её]н\w*)(?!\w)", re.IGNORECASE)
 
