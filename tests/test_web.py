@@ -191,6 +191,13 @@ def test_hidden_section_shows_reason(client, conn):
     assert "гибрид" in client.get(f"/jobs/{jid}").text
 
 
+def test_hidden_non_it_has_russian_label(client, conn):
+    jid = seed(conn, title="Account Executive", company="S", hidden_reason="non_it")
+    hidden = client.get("/list", params={"section": "hidden"}).text
+    assert "не IT" in hidden and "non_it" not in hidden
+    assert "не IT" in client.get(f"/jobs/{jid}").text
+
+
 def test_tabs_with_counts(client, conn, seeded):
     other = seed(conn, title="Go Dev", company="G")
     set_status(conn, other, "interesting", datetime.now(UTC))

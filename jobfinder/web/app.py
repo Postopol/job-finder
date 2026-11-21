@@ -42,7 +42,7 @@ FRESH_OPTIONS = [(1, "За сутки"), (3, "За 3 дня"), (7, "За нед�
 STATUS_LABELS = {"new": "Новая", "seen": "Посмотрел", "interesting": "Интересно",
                  "applied": "Откликнулся", "rejected": "Не подходит"}
 STATUS_BUTTONS = ("seen", "interesting", "applied", "rejected")
-HIDDEN_LABELS = {"hybrid": "гибрид", "office": "офис",
+HIDDEN_LABELS = {"hybrid": "гибрид", "office": "офис", "non_it": "не IT",
                  "restricted": "не для твоей страны"}
 CURRENCY = {"USD": ("$", ""), "EUR": ("€", ""), "GBP": ("£", ""),
             "RUB": ("", " ₽"), "KZT": ("", " ₸")}
