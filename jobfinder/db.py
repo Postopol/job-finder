@@ -237,6 +237,29 @@ def upsert_job(conn: sqlite3.Connection, job: Job, hidden_reason: str | None,
     return job_id, is_new
 
 
+def update_job_fields(conn: sqlite3.Connection, job_id: int, job: Job,
+                      hidden_reason: str | None) -> None:
+    """Overwrite a job's parsed fields (reparse); timestamps and status untouched."""
+    f = dict(
+        dedup_key=dedup_key(job.company, job.title), title=job.title, company=job.company,
+        lang=job.lang, description_html=job.description_html,
+        description_text=job.description_text, salary_raw=job.salary_raw,
+        salary_min=job.salary_min, salary_max=job.salary_max,
+        salary_currency=job.salary_currency, salary_period=job.salary_period,
+        salary_usd_month=_salary_usd_month(conn, job.salary_min, job.salary_max,
+                                           job.salary_currency, job.salary_period),
+        location_raw=job.location_raw, work_format=job.work_format,
+        remote_scope=job.remote_scope, countries=json.dumps(job.countries),
+        timezones=json.dumps(job.timezones), seniority=job.seniority,
+        stack=json.dumps(job.stack),
+        published_at=_iso(job.published_at) if job.published_at else None,
+        hidden_reason=hidden_reason)
+    with _tx(conn):
+        conn.execute(f"UPDATE jobs SET {', '.join(f'{k}=?' for k in f)} WHERE id=?",
+                     [*f.values(), job_id])
+        search.index_job(conn, job_id)
+
+
 def known_source_ids(conn: sqlite3.Connection, source: str) -> set[str]:
     return {r[0] for r in conn.execute("SELECT source_id FROM postings WHERE source=?", (source,))}
 
