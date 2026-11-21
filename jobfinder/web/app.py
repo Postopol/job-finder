@@ -6,7 +6,7 @@ import sqlite3
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, urlencode, urlsplit
 
 import nh3
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
@@ -45,6 +45,44 @@ HIDDEN_LABELS = {"hybrid": "гибрид", "office": "офис",
 CURRENCY = {"USD": ("$", ""), "EUR": ("€", ""), "GBP": ("£", ""),
             "RUB": ("", " ₽"), "KZT": ("", " ₸")}
 PERIODS = {"month": " / мес", "year": " / год", "hour": " / час"}
+
+
+# --- security helpers ---------------------------------------------------------
+
+LOCAL_HOSTS = {"127.0.0.1", "localhost", "testserver"}
+_DEFAULT_PORTS = {"http": 80, "https": 443}
+
+
+def safe_url(url: str | None) -> str | None:
+    """Only http(s) URLs may become links (no javascript:, data:, …)."""
+    url = (url or "").strip()
+    return url if urlsplit(url).scheme.lower() in ("http", "https") else None
+
+
+def origin_allowed(request: Request, origin: str) -> bool:
+    """Origin/Referer must be this local app: a local host name on the port we serve.
+
+    The Host header is not trusted for the name (DNS rebinding sends Host: evil.example).
+    """
+    try:
+        o = urlsplit(origin)
+        o_port = o.port or _DEFAULT_PORTS.get(o.scheme)
+        h = urlsplit("//" + request.headers.get("host", ""))
+        h_port = h.port or _DEFAULT_PORTS.get(request.url.scheme)
+    except ValueError:  # malformed port
+        return False
+    return (o.scheme in _DEFAULT_PORTS and o.hostname in LOCAL_HOSTS
+            and h.hostname in LOCAL_HOSTS and o_port == h_port)
+
+
+def require_same_origin(request: Request) -> None:
+    """CSRF guard for state-changing routes: a browser request from another site → 403.
+
+    Requests without Origin and Referer (curl, CLI) are allowed.
+    """
+    origin = request.headers.get("origin") or request.headers.get("referer")
+    if origin is not None and not origin_allowed(request, origin):
+        raise HTTPException(403, "Запрос с чужого сайта отклонён")
 
 
 # --- helpers used by templates ----------------------------------------------
@@ -239,10 +277,12 @@ def _list_context(conn: sqlite3.Connection, f: dict, now: datetime) -> dict:
 
 
 def _detail_context(job: dict, now: datetime) -> dict:
-    postings = [p for p in job["postings"] if p.get("url")]
+    postings = [dict(p, url=safe_url(p.get("url"))) for p in job["postings"]]
+    postings = [p for p in postings if p["url"]]
     primary = next((p for p in postings if p["source"] == job["source_primary"]), None)
     if primary is None:
-        primary = postings[0] if postings else {"source": job["source_primary"], "url": job["url"]}
+        primary = postings[0] if postings else {"source": job["source_primary"],
+                                                "url": safe_url(job["url"])}
     others = [dict(p, label=source_label(p["source"])) for p in postings
               if p is not primary and p["url"] != primary["url"]]
     reasons = []
@@ -251,7 +291,8 @@ def _detail_context(job: dict, now: datetime) -> dict:
     if job.get("hidden_reason"):
         reasons.append(hidden_label(job["hidden_reason"]))
     raw_html = job.get("description_html") or ""
-    desc_html = nh3.clean(raw_html) if raw_html.strip() else ""
+    desc_html = nh3.clean(raw_html, set_tag_attribute_values={"a": {"target": "_blank"}},
+                          link_rel="noopener noreferrer") if raw_html.strip() else ""
     return {
         "job": job,
         "source": source_label(job["source_primary"]),
@@ -347,10 +388,11 @@ def create_app(db_path: Path | str, start_scheduler: bool = True) -> FastAPI:
         resp = templates.TemplateResponse(request, "_detail.html",
                                           {"d": _detail_context(job, now), "oob": True})
         if changed:
-            resp.headers["HX-Trigger"] = "list-changed"
+            resp.headers["HX-Trigger-After-Swap"] = "list-changed"
         return resp
 
-    @app.post("/jobs/{job_id}/status", response_class=HTMLResponse)
+    @app.post("/jobs/{job_id}/status", response_class=HTMLResponse,
+              dependencies=[Depends(require_same_origin)])
     def job_status(request: Request, job_id: int, status: str = Form(...),
                    conn: sqlite3.Connection = Depends(get_conn)):
         now = datetime.now(UTC)
@@ -362,7 +404,8 @@ def create_app(db_path: Path | str, start_scheduler: bool = True) -> FastAPI:
         job = db.get_job(conn, job_id)
         resp = templates.TemplateResponse(request, "_detail.html",
                                           {"d": _detail_context(job, now), "oob": True})
-        resp.headers["HX-Trigger"] = "list-changed"
+        # After-swap: the OOB #job-input update must land before #list refreshes.
+        resp.headers["HX-Trigger-After-Swap"] = "list-changed"
         return resp
 
     return app

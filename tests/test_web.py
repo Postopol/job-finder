@@ -1,3 +1,4 @@
+import itertools
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -9,8 +10,11 @@ from jobfinder.web.app import create_app, review_links
 from tests.conftest import mk
 
 
+_ids = itertools.count(1000)
+
+
 def seed(conn, hidden_reason=None, when=None, **kw) -> int:
-    kw.setdefault("source_id", str(kw.get("title", "x")) + str(datetime.now().timestamp()))
+    kw.setdefault("source_id", f"seed-{next(_ids)}")
     jid, _ = upsert_job(conn, mk(**kw), hidden_reason, when or datetime.now(UTC))
     return jid
 
@@ -38,15 +42,19 @@ def test_feed_renders_jobs(client, seeded):
 
 
 def test_open_marks_seen(client, conn, seeded):
-    client.get(f"/jobs/{seeded}")
+    r = client.get(f"/jobs/{seeded}")
     assert get_status(conn, seeded) == "seen"
+    assert r.headers.get("HX-Trigger-After-Swap") == "list-changed"
+    assert "HX-Trigger-After-Swap" not in client.get(f"/jobs/{seeded}").headers  # already seen
 
 
 def test_status_change_persists(client, conn, seeded):
     r = client.post(f"/jobs/{seeded}/status", data={"status": "applied"})
     assert r.status_code == 200
     assert get_status(conn, seeded) == "applied"
-    assert r.headers.get("HX-Trigger") == "list-changed"
+    # after-swap, so the list refresh sees the job id updated by the OOB swap
+    assert r.headers.get("HX-Trigger-After-Swap") == "list-changed"
+    assert "HX-Trigger" not in r.headers
 
 
 def test_bad_status_rejected(client, seeded):
@@ -61,9 +69,62 @@ def test_search_special_chars_no_500(client, seeded):
 
 def test_description_sanitized(client, conn):  # Review Focus 5
     jid = seed(conn, description_html='<p>ok</p><script>alert(1)</script>'
-                                      '<img src=x onerror="alert(2)"><div>unclosed')
+                                      '<img src=x onerror="alert(2)"><div>unclosed'
+                                      '<a href="javascript:alert(3)">js</a>'
+                                      '<a href="https://ok.example/x" onclick="alert(4)">ok</a>'
+                                      '<span hx-get="/jobs/1/status" hx-trigger="load">htmx</span>')
     html = client.get(f"/jobs/{jid}").text
     assert "<script>alert(1)" not in html and "onerror" not in html and "<p>ok</p>" in html
+    assert "javascript:" not in html and "onclick" not in html
+    assert 'hx-trigger="load"' not in html and 'hx-get="/jobs/1/status"' not in html
+    assert 'href="https://ok.example/x"' in html
+    link = html[html.index('href="https://ok.example/x"') - 200:html.index(">ok</a>")]
+    assert 'target="_blank"' in link and "noopener" in link
+    assert '<div class="prose" hx-disable>' in html
+
+
+def test_non_http_urls_not_linked(client, conn):
+    jid = seed(conn, source="himalayas", url="javascript:alert(1)", title="Evil", company="E")
+    html = client.get(f"/jobs/{jid}").text
+    assert "javascript:" not in html
+    assert "Himalayas" in html  # source still named, as plain text
+
+
+def test_csrf_foreign_origin_rejected(client, conn, seeded):
+    r = client.post(f"/jobs/{seeded}/status", data={"status": "applied"},
+                    headers={"Origin": "https://evil.example"})
+    assert r.status_code == 403 and get_status(conn, seeded) == "new"
+    r = client.post(f"/jobs/{seeded}/status", data={"status": "applied"},
+                    headers={"Referer": "https://evil.example/page"})
+    assert r.status_code == 403
+    r = client.post(f"/jobs/{seeded}/status", data={"status": "applied"},
+                    headers={"Origin": "null"})
+    assert r.status_code == 403
+    assert get_status(conn, seeded) == "new"
+
+
+def test_csrf_same_origin_allowed(client, conn, seeded):
+    r = client.post(f"/jobs/{seeded}/status", data={"status": "interesting"},
+                    headers={"Origin": "http://testserver"})
+    assert r.status_code == 200 and get_status(conn, seeded) == "interesting"
+    r = client.post(f"/jobs/{seeded}/status", data={"status": "applied"},
+                    headers={"Referer": "http://testserver/?job=1"})
+    assert r.status_code == 200 and get_status(conn, seeded) == "applied"
+
+
+def test_csrf_localhost_port_must_match():
+    from starlette.requests import Request
+
+    from jobfinder.web.app import origin_allowed
+
+    def req(host):
+        return Request({"type": "http", "method": "POST", "path": "/", "query_string": b"",
+                        "scheme": "http", "server": ("127.0.0.1", 8000),
+                        "headers": [(b"host", host.encode())]})
+    assert origin_allowed(req("127.0.0.1:8000"), "http://127.0.0.1:8000")
+    assert origin_allowed(req("127.0.0.1:8000"), "http://localhost:8000")
+    assert not origin_allowed(req("127.0.0.1:8000"), "http://127.0.0.1:9999")
+    assert not origin_allowed(req("evil.example:8000"), "http://evil.example:8000")  # rebinding
 
 
 def test_review_links_encode_company():
@@ -159,12 +220,12 @@ def test_bad_query_values_do_not_500(client, seeded):
     huge = "9" * 30
     for params in ({"salary": "abc"}, {"fresh": "x"}, {"section": "nope"}, {"job": "abc"},
                    {"salary": huge}, {"fresh": huge}, {"fresh": "-5"}, {"job": huge}):
-        assert client.get("/", params=params).status_code in (200, 422)
-        assert client.get("/list", params=params).status_code in (200, 422)
+        assert client.get("/", params=params).status_code == 200
+        assert client.get("/list", params=params).status_code == 200
 
 
 def test_huge_job_id_404(client):
-    assert client.get("/jobs/" + "9" * 30).status_code in (404, 422)
+    assert client.get("/jobs/" + "9" * 30).status_code == 404
     assert client.post("/jobs/" + "9" * 20 + "/status", data={"status": "seen"}).status_code == 404
 
 

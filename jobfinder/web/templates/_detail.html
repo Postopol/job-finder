@@ -24,7 +24,11 @@
 {% endif %}
 
 <div class="actions">
+  {% if d.primary.url %}
   <a class="qz-btn qz-btn--primary" href="{{ d.primary.url }}" target="_blank" rel="noopener">Открыть на {{ d.primary.label }} <span class="qz-arrow" aria-hidden="true"></span></a>
+  {% else %}
+  <span class="qz-btn qz-btn--outline" aria-disabled="true">{{ d.primary.label }}: ссылки на оригинал нет</span>
+  {% endif %}
   <details class="dropdown">
     <summary class="qz-btn qz-btn--outline">Найти отзывы о компании</summary>
     <div class="dropdown__menu">
@@ -52,9 +56,9 @@
 <section class="description">
   <h2 class="section-title">О вакансии</h2>
   {% if d.description_html %}
-  <div class="prose">{{ d.description_html|safe }}</div>
+  <div class="prose" hx-disable>{{ d.description_html|safe }}</div>
   {% elif job.description_text %}
-  <div class="prose"><p>{{ job.description_text|nl2br }}</p></div>
+  <div class="prose" hx-disable><p>{{ job.description_text|nl2br }}</p></div>
   {% else %}
   <p class="mute">Описания нет — смотри оригинал по ссылке выше.</p>
   {% endif %}
