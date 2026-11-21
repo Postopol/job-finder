@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import copy
+import fcntl
 import logging
+import os
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 
 from . import db
 from .filters import FilterConfig, classify_scope, hidden_reason
@@ -43,9 +47,62 @@ def _error_text(exc: Exception) -> str:
     return str(exc) or type(exc).__name__
 
 
-def is_running() -> bool:
-    """True while a collect() holds the lock in this process."""
-    return _lock.locked()
+def lock_path(db_path: Path | str) -> Path:
+    return Path(f"{db_path}.collect.lock")
+
+
+def db_file(conn) -> Path | None:
+    """File of the connection's main database; None for in-memory/temporary DBs."""
+    for row in conn.execute("PRAGMA database_list").fetchall():
+        if row[1] == "main":
+            return Path(row[2]) if row[2] else None
+    return None
+
+
+@contextmanager
+def file_lock(db_path: Path | str | None) -> Iterator[bool]:
+    """Cross-process collect lock (flock on `<db>.collect.lock`).
+
+    Yields True when acquired (or there is no file to lock), False when another
+    process or connection holds it.
+    """
+    if db_path is None:
+        yield True
+        return
+    fd = os.open(lock_path(db_path), os.O_RDWR | os.O_CREAT, 0o644)
+    try:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            yield False
+            return
+        try:
+            yield True
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+    finally:
+        os.close(fd)
+
+
+def is_running(db_path: Path | str | None = None) -> bool:
+    """True while a collect holds the thread lock here or the file lock of `db_path`."""
+    if _lock.locked():
+        return True
+    if db_path is None:
+        return False
+    try:  # probe without creating the lock file
+        fd = os.open(lock_path(db_path), os.O_RDWR)
+    except FileNotFoundError:
+        return False
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        return True
+    else:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        return False
+    finally:
+        os.close(fd)
 
 
 def collect(conn, sources: dict[str, Source] | None = None,
@@ -55,18 +112,22 @@ def collect(conn, sources: dict[str, Source] | None = None,
 
     Sources listed in the `disabled_sources` setting are skipped, except when
     `only` names one explicitly (a manual request runs even a disabled source).
-    If another collect is already running, returns [] immediately.
+    If another collect is already running (this process or another one on the
+    same DB file), returns [] immediately.
     """
     if not _lock.acquire(blocking=False):
         return []
     try:
-        sources = REGISTRY if sources is None else sources
-        if only is not None:
-            names = [only] if only in sources else []
-        else:
-            disabled = set(db.get_setting(conn, "disabled_sources") or [])
-            names = [n for n in sources if n not in disabled]
-        return [_run_one(conn, sources[n], n, now_fn, client_factory) for n in names]
+        with file_lock(db_file(conn)) as acquired:
+            if not acquired:
+                return []
+            sources = REGISTRY if sources is None else sources
+            if only is not None:
+                names = [only] if only in sources else []
+            else:
+                disabled = set(db.get_setting(conn, "disabled_sources") or [])
+                names = [n for n in sources if n not in disabled]
+            return [_run_one(conn, sources[n], n, now_fn, client_factory) for n in names]
     finally:
         _lock.release()
 

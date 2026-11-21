@@ -77,8 +77,9 @@ def test_check_sources_writes_nothing(fake, capsys, tmp_path):
     db = tmp_path / "absent" / "x.db"
     assert cli.main(["check-sources", "--db", str(db)]) == 0
     out = capsys.readouterr().out
-    assert "fake" in out and "3" in out
-    assert "broken" in out and "сломалось" in out
+    lines = out.splitlines()
+    assert any(line.startswith("fake") and "вакансий 3" in line for line in lines)
+    assert any(line.startswith("broken") and "сломалось" in line for line in lines)
     assert not db.exists() and not db.parent.exists()
     assert fake["fake"].seen_settings["max_pages"] == 99  # its own copy, started at 1
 
@@ -98,22 +99,59 @@ def test_check_sources_uses_existing_settings_readonly(fake, capsys, tmp_path):
     assert conn.execute("SELECT value FROM settings WHERE key='max_pages'").fetchone() is None
 
 
-def test_check_sources_max_pages_one(monkeypatch, capsys, tmp_path):
+def test_check_sources_max_pages_one_and_one_detail(monkeypatch, capsys, tmp_path):
     seen = {}
 
     class Probe(FakeSource):
         def fetch(self, client, known, wants, settings):
-            seen.update(max_pages=settings["max_pages"], known=known, wants=wants(None))
+            seen.update(max_pages=settings["max_pages"], known=known,
+                        wants=[wants(j) for j in ("a", "b", "c")])
             return []
-    monkeypatch.setattr(cli, "REGISTRY", {"p": Probe("p")})
+    monkeypatch.setattr(cli, "REGISTRY", {"p": Probe("p"), "q": Probe("q")})
     monkeypatch.setattr(cli, "PoliteClient", FakeClient)
     cli.main(["check-sources", "--db", str(tmp_path / "x.db")])
-    assert seen == {"max_pages": 1, "known": set(), "wants": True}
+    # each source gets its own budget: only the first job asks for a detail page
+    assert seen == {"max_pages": 1, "known": set(), "wants": [True, False, False]}
+
+
+def _hold_lock(db):
+    import fcntl
+    import os
+    fd = os.open(f"{db}.collect.lock", os.O_RDWR | os.O_CREAT, 0o644)
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    return fd
+
+
+def test_cli_collect_lock_held_exit_1(fake, capsys, tmp_path):
+    import os
+    db = tmp_path / "x.db"
+    connect(db).close()
+    fd = _hold_lock(db)
+    try:
+        assert cli.main(["collect", "--db", str(db)]) == 1
+        assert "сбор уже идёт" in capsys.readouterr().err.lower()
+        assert cli.main(["check-sources", "--db", str(db)]) == 1
+        assert fake["fake"].seen_settings is None  # nothing fetched
+    finally:
+        os.close(fd)
+    assert last_runs(connect(db)) == {}
+
+
+def test_cli_collect_all_failed_exit_1(fake, capsys, tmp_path):
+    assert cli.main(["collect", "--source", "broken", "--db", str(tmp_path / "x.db")]) == 1
+
+
+def test_cli_collect_all_disabled_exit_0(fake, capsys, tmp_path):
+    from jobfinder.db import set_setting
+    db = tmp_path / "x.db"
+    set_setting(connect(db), "disabled_sources", ["fake", "broken"])
+    assert cli.main(["collect", "--db", str(db)]) == 0
+    assert "выключены" in capsys.readouterr().out
 
 
 def test_cli_reparse_prints_count(fake, capsys, tmp_path):
     assert cli.main(["reparse", "--db", str(tmp_path / "x.db")]) == 0
-    assert "0" in capsys.readouterr().out
+    assert "Перепарсено вакансий: 0" in capsys.readouterr().out
 
 
 def test_default_db_path_is_project_root():

@@ -312,6 +312,21 @@ def test_triage_empty_state(client, conn):
     assert "Новых вакансий нет" in client.get("/triage").text
 
 
+def test_triage_stale_tab_does_not_overwrite(client, conn, seeded2):
+    j1, j2 = seeded2
+    set_status(conn, j1, "applied", datetime.now(UTC))  # decided elsewhere meanwhile
+    r = client.post(f"/triage/{j1}", data={"action": "reject"}, headers={"HX-Request": "true"})
+    assert r.status_code == 200 and get_status(conn, j1) == "applied"
+    assert "Go Developer" in r.text  # just the next card
+
+
+def test_triage_buttons_all_disabled_while_posting(client, seeded2):
+    html = client.get("/triage").text
+    assert 'hx-disabled-elt=".triage-actions button"' in html
+    assert 'id="triage-progress" class="progress" aria-live="polite"' in html
+    assert 'id="triage" class="triage">' in html
+
+
 def test_triage_post_errors(client, conn, seeded2):
     j1, _ = seeded2
     assert client.post("/triage/999999", data={"action": "later"}).status_code == 404
@@ -431,6 +446,18 @@ def test_collect_already_running(client, monkeypatch):
         assert "Сбор уже идёт" in client.post("/collect").text
     finally:
         collector._lock.release()
+
+
+def test_collect_already_running_other_process(client, tmp_path, monkeypatch):
+    import fcntl
+    import os
+    monkeypatch.setattr(scheduler, "run_collect", lambda path: pytest.fail("must not start"))
+    fd = os.open(f"{tmp_path / 'j.db'}.collect.lock", os.O_RDWR | os.O_CREAT, 0o644)
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    try:
+        assert "Сбор уже идёт" in client.post("/collect").text
+    finally:
+        os.close(fd)
 
 
 def test_new_posts_reject_foreign_origin(client, conn, seeded2, monkeypatch):

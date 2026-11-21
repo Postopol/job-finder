@@ -24,6 +24,7 @@ def test_start_registers_jobs_and_stops(tmp_path, conn, no_jobs):
         lead = collect.next_run_time - datetime.now(collect.next_run_time.tzinfo)
         assert timedelta(seconds=0) < lead <= timedelta(seconds=11)
         assert s.get_job("maintenance").trigger.interval == timedelta(days=1)
+        assert collect.misfire_grace_time is None and collect.coalesce
     finally:
         s.shutdown(wait=False)
     assert not s.running

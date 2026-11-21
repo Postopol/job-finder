@@ -79,33 +79,54 @@ def cmd_collect(args) -> int:
     finally:
         conn.close()
     if not results:
-        print("Ничего не запущено: сбор уже идёт или все источники выключены")
+        if collector.is_running(args.db):
+            print("Сбор уже идёт", file=sys.stderr)
+            return 1
+        print("Ничего не запущено: все источники выключены")
+        return 0
     for r in results:
         state = "ok" if r.ok else f"ошибка: {r.error}"
         print(f"{r.source:<14} {state} · получено {r.fetched}, новых {r.new}, "
               f"пропущено {r.skipped}, запросов {r.requests}")
-    return 0
+    return 0 if any(r.ok for r in results) else 1
+
+
+def _first_only():
+    """wants() for check-sources: one detail request per source is enough to test parsing."""
+    state = {"left": 1}
+
+    def wants(job) -> bool:
+        if state["left"]:
+            state["left"] -= 1
+            return True
+        return False
+    return wants
 
 
 def cmd_check_sources(args) -> int:
     if not _check_source_name(args.source):
         return 2
-    base = _read_settings(args.db)
-    base["max_pages"] = 1
-    names = [args.source] if args.source else list(REGISTRY)
-    for name in names:
-        client = None
-        try:
-            client = PoliteClient()
-            jobs = REGISTRY[name].fetch(client, set(), lambda j: True, copy.deepcopy(base))
-            line = f"ok · вакансий {len(jobs)}"
-        except Exception as exc:
-            line = f"ошибка: {collector._error_text(exc)}"
-        finally:
-            requests = getattr(client, "requests", 0)
-            if client is not None:
-                client.close()
-        print(f"{name:<14} {line} · запросов {requests}", flush=True)
+    exists = args.db.is_file()  # never create the DB (or its lock) for a dry check
+    with collector.file_lock(args.db if exists else None) as acquired:
+        if not acquired:
+            print("Сбор уже идёт — проверь источники позже", file=sys.stderr)
+            return 1
+        base = _read_settings(args.db)
+        base["max_pages"] = 1
+        names = [args.source] if args.source else list(REGISTRY)
+        for name in names:
+            client = None
+            try:
+                client = PoliteClient()
+                jobs = REGISTRY[name].fetch(client, set(), _first_only(), copy.deepcopy(base))
+                line = f"ok · вакансий {len(jobs)}"
+            except Exception as exc:
+                line = f"ошибка: {collector._error_text(exc)}"
+            finally:
+                requests = getattr(client, "requests", 0)
+                if client is not None:
+                    client.close()
+            print(f"{name:<14} {line} · запросов {requests}", flush=True)
     return 0
 
 

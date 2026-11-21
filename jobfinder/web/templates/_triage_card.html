@@ -45,7 +45,7 @@
 
 <form class="triage-actions" action="/triage/{{ job.id }}" method="post"
       hx-post="/triage/{{ job.id }}" hx-target="#triage" hx-swap="innerHTML show:window:top"
-      hx-disabled-elt="find button">
+      hx-disabled-elt=".triage-actions button">
   {% for b in buttons %}
   <button type="submit" name="action" value="{{ b.action }}" data-triage-action="{{ b.action }}"
           class="qz-btn {{ 'qz-btn--primary' if b.primary else 'qz-btn--outline' }} triage-btn">

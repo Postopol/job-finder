@@ -583,7 +583,9 @@ def create_app(db_path: Path | str, start_scheduler: bool = True) -> FastAPI:
             raise HTTPException(404, "Вакансия не найдена")
         if action not in TRIAGE_ACTIONS:
             raise HTTPException(422, f"Неизвестное действие: {action}")
-        db.set_status(conn, job_id, TRIAGE_ACTIONS[action], now)
+        # A stale tab must not overwrite a decision made elsewhere: only `new` changes.
+        if db.get_status(conn, job_id) == "new":
+            db.set_status(conn, job_id, TRIAGE_ACTIONS[action], now)
         if "hx-request" not in request.headers:  # plain form post: back to the page
             return RedirectResponse("/triage", status_code=303)
         return templates.TemplateResponse(request, "_triage_card.html",
@@ -645,7 +647,7 @@ def create_app(db_path: Path | str, start_scheduler: bool = True) -> FastAPI:
     @app.post("/collect", response_class=HTMLResponse,
               dependencies=[Depends(require_same_origin)])
     def collect_now():
-        if collector.is_running():
+        if collector.is_running(app.state.db_path):
             message = "Сбор уже идёт"
         else:
             threading.Thread(target=scheduler.run_collect, args=(app.state.db_path,),

@@ -1,4 +1,4 @@
-<div id="triage-progress" class="progress"{% if oob %} hx-swap-oob="true"{% endif %}>
+<div id="triage-progress" class="progress" aria-live="polite"{% if oob %} hx-swap-oob="true"{% endif %}>
   <div class="progress__text"><span>Разбор новых</span><span class="ink">{{ done }} из {{ total }}</span></div>
   <div class="progress__bar" role="progressbar" aria-label="Разобрано" aria-valuenow="{{ done }}" aria-valuemin="0" aria-valuemax="{{ total }}">
     <div class="progress__fill" style="width: {{ percent }}%"></div>

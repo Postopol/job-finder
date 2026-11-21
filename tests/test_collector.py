@@ -186,3 +186,41 @@ def test_close_failure_does_not_break_run(conn):
     res = collect(conn, sources={"g": Fixed("g", [])}, client_factory=Bad)
     assert res[0].ok
     assert last_runs(conn)["g"]["finished_at"]
+
+
+def _hold_file_lock(db_path):
+    """Simulate another process: flock the collect lock through a separate fd."""
+    import fcntl
+    import os
+    fd = os.open(collector.lock_path(db_path), os.O_RDWR | os.O_CREAT, 0o644)
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    return fd
+
+
+def test_file_lock_blocks_collect_across_processes(conn, tmp_path):
+    import os
+    db_path = tmp_path / "j.db"
+    assert collector.db_file(conn) == db_path
+    assert not collector.is_running(db_path)
+    fd = _hold_file_lock(db_path)
+    try:
+        assert collector.is_running(db_path)
+        assert run(conn, {"good": Fixed("good", [mk(source="good")])}) == []
+        assert last_runs(conn) == {}
+    finally:
+        os.close(fd)
+    assert not collector.is_running(db_path)
+    assert len(run(conn, {"good": Fixed("good", [])})) == 1  # lock released → runs
+
+
+def test_file_lock_released_after_collect(conn, tmp_path):
+    run(conn, {"good": Fixed("good", [])})
+    assert not collector.is_running(tmp_path / "j.db")
+    assert not collector._lock.locked()
+
+
+def test_in_memory_db_skips_file_lock():
+    from jobfinder.db import connect
+    mem = connect(":memory:")
+    assert collector.db_file(mem) is None
+    assert len(run(mem, {"good": Fixed("good", [mk(source="good")])})) == 1

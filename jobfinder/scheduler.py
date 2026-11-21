@@ -74,7 +74,8 @@ def start_scheduler(db_path: Path | str) -> BackgroundScheduler:
         trigger = _interval(db.DEFAULT_SETTINGS["interval_hours"])
     now = datetime.now(UTC)
     sched = BackgroundScheduler()
-    common = dict(args=[db_path], max_instances=1, coalesce=True, misfire_grace_time=3600)
+    common = dict(args=[db_path], max_instances=1, coalesce=True,
+                  misfire_grace_time=None)  # a run missed during sleep fires once on wake
     sched.add_job(run_collect, trigger, id="collect", name="collect",
                   next_run_time=now + FIRST_COLLECT_DELAY, **common)
     sched.add_job(run_maintenance, IntervalTrigger(days=1), id="maintenance", name="maintenance",
