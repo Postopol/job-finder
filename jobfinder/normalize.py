@@ -93,8 +93,8 @@ def _parse_salary(text: str | None) -> Salary | None:
 # ------------------------------------------------------------- seniority
 
 _LEAD = re.compile(
-    r"(?<!\w)(?:team\s*lead|tech\s*lead|lead|head\s+of|principal|staff|"
-    r"тимлид|тим-лид|лид|руководитель)(?!\w)",
+    r"(?<!\w)(?:team\s*lead|tech\s*lead|lead|head\s+of|principal|staff|director|"
+    r"engineering\s+manager|тимлид|тим-лид|лид|руководитель|директор\w*)(?!\w)",
     re.I,
 )
 _SENIOR = re.compile(
@@ -107,13 +107,47 @@ _JUNIOR = re.compile(
 )
 
 
+# Required experience in the description: "5+ years of experience", "Experience: 3 years",
+# «опыт работы от 3 лет», «3+ года опыта». A range counts by its lower bound.
+_N = r"(\d{1,2})\s*\+?\s*(?:(?:-|–|—|to|до)\s*\d{1,2}\s*\+?\s*)?"
+_YEARS_RE = (
+    re.compile(_N + r"(?:years?|yrs?)\b(?:\s+of)?(?:[\s,]+[\w-]+){0,3}?[\s,]+experience\b", re.I),
+    re.compile(r"\bexperience\b\s*(?:of|:|-|–)?\s*(?:at\s+least|minimum|min\.?|over|"
+               r"more\s+than)?\s*" + _N + r"(?:years?|yrs?)\b", re.I),
+    re.compile(r"(?<!\w)опыт\w*(?:\s+[а-яё-]+){0,3}?\s+(?:от|не\s+менее|более|свыше|минимум)?\s*"
+               + _N + r"(?:год|года|лет)(?!\w)", re.I),
+    re.compile(_N + r"(?:год|года|лет)(?!\w)(?:\s+[а-яё-]+){0,2}?\s+опыт", re.I),
+)
+_MAX_YEARS = 15  # "20 years of experience of our team" is about the company
+
+
+def years_required(text: str) -> int | None:
+    """The largest experience requirement in years found in the text, or None."""
+    found = [int(m.group(1)) for rx in _YEARS_RE for m in rx.finditer(text or "")]
+    found = [n for n in found if n <= _MAX_YEARS]
+    return max(found) if found else None
+
+
+def _level_by_years(years: int) -> str:
+    if years <= 1:
+        return "junior"
+    return "middle" if years <= 3 else "senior"
+
+
 def detect_seniority(title: str, text: str = "") -> str | None:
-    for source, with_lead in ((title, True), (text, False)):
-        if with_lead and _LEAD.search(source):
-            return "lead"
-        for name, rx in (("senior", _SENIOR), ("middle", _MIDDLE), ("junior", _JUNIOR)):
-            if rx.search(source):
-                return name
+    """Level from the title; else from the required years of experience; else from level
+    words in the text (the weakest hint: "you will work with senior engineers")."""
+    if _LEAD.search(title or ""):
+        return "lead"
+    for name, rx in (("senior", _SENIOR), ("middle", _MIDDLE), ("junior", _JUNIOR)):
+        if rx.search(title or ""):
+            return name
+    years = years_required(text)
+    if years is not None:
+        return _level_by_years(years)
+    for name, rx in (("senior", _SENIOR), ("middle", _MIDDLE), ("junior", _JUNIOR)):
+        if rx.search(text or ""):
+            return name
     return None
 
 

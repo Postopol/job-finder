@@ -37,6 +37,8 @@ SECTION_LABELS = {"feed": "Лента", "mine": "Мои", "archive": "Архив
 SCOPE_OPTIONS = [("worldwide", "Весь мир"), ("cis", "СНГ"),
                  ("countries", "Страны, где есть твоя"), ("unknown", "Не указано (уточнить)")]
 LANG_OPTIONS = [("ru", "RU"), ("en", "EN")]
+LEVEL_OPTIONS = [("junior", "Junior"), ("middle", "Middle"), ("senior", "Senior"),
+                 ("lead", "Lead"), ("none", "Не указан")]
 LANG_LABELS = {"ru": "Русский", "en": "Английский"}
 FRESH_OPTIONS = [(1, "За сутки"), (3, "За 3 дня"), (7, "За неделю"), (30, "За месяц")]
 STATUS_LABELS = {"new": "Новая", "seen": "Посмотрел", "interesting": "Интересно",
@@ -215,6 +217,7 @@ def parse_filters(request: Request, conn: sqlite3.Connection) -> dict:
         "src": multi("src"),
         "lang": multi("lang"),
         "scope": multi("scope"),
+        "level": multi("level"),
         "salary": _int(qp.get("salary")),
         # form sends hidden nosalary=0 plus checkbox nosalary=1; absent → default «show»
         "nosalary": "1" in qp.getlist("nosalary") if "nosalary" in qp else True,
@@ -226,7 +229,7 @@ def parse_filters(request: Request, conn: sqlite3.Connection) -> dict:
 
 def to_params(f: dict) -> SearchParams:
     return SearchParams(text=f["q"], section=f["section"], sources=f["src"], langs=f["lang"],
-                        scopes=f["scope"], salary_min_usd=f["salary"],
+                        scopes=f["scope"], levels=f["level"], salary_min_usd=f["salary"],
                         include_no_salary=f["nosalary"], fresh_days=f["fresh"], limit=LIST_LIMIT)
 
 
@@ -238,7 +241,7 @@ def page_url(f: dict, **override) -> str:
         pairs.append(("q", state["q"]))
     if state["section"] != "feed":
         pairs.append(("section", state["section"]))
-    for key in ("src", "lang", "scope"):
+    for key in ("src", "lang", "scope", "level"):
         if state[key] is not None:
             pairs += [(key, v) for v in state[key]] or [(key, "")]
     if state["salary"] is not None:
@@ -536,6 +539,7 @@ def create_app(db_path: Path | str, start_scheduler: bool = True,
             **_list_context(conn, f, now), **_header_context(conn, now),
             "d": detail, "sources": _source_options(conn, f),
             "scope_options": SCOPE_OPTIONS, "lang_options": LANG_OPTIONS,
+            "level_options": LEVEL_OPTIONS,
             "fresh_options": FRESH_OPTIONS, "active": "feed", "oob": False,
         }
         return templates.TemplateResponse(request, "feed.html", ctx)

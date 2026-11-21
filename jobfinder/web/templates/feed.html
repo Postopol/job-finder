@@ -51,6 +51,19 @@
         </div>
       </fieldset>
 
+      <fieldset class="field">
+        <legend class="label">Уровень</legend>
+        <input type="hidden" name="level" value="">
+        <div class="chips">
+          {% for value, label in level_options %}
+          <label class="qz-tab chip">
+            <input type="checkbox" name="level" value="{{ value }}" {% if f.level is none or value in f.level %}checked{% endif %}>
+            {{ label }}
+          </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
       <div class="field">
         <label class="label" for="salary">Зарплата от, $ / мес</label>
         <input id="salary" name="salary" type="text" inputmode="numeric" placeholder="2 500"

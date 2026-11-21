@@ -84,3 +84,30 @@ def test_normalize_job_keeps_existing_values():
 ])
 def test_russian_period_forms(text, period):
     assert parse_salary(text).period == period
+
+
+@pytest.mark.parametrize("title,text,expected", [
+    ("Software Engineer", "We need 5+ years of experience with Python.", "senior"),
+    ("Data Engineer", "3+ years of professional experience", "middle"),
+    ("Data Engineer", "Requirements: 2-4 years of hands-on experience", "middle"),
+    ("QA Engineer", "1+ year of experience in testing", "junior"),
+    ("QA Engineer", "Experience: 6 years in backend", "senior"),
+    ("Backend Developer", "minimum 4 years experience", "senior"),
+    ("Go-разработчик", "Опыт работы от 3 лет", "middle"),
+    ("Python-разработчик", "Опыт коммерческой разработки не менее 5 лет", "senior"),
+    ("Аналитик", "3+ года опыта в аналитике", "middle"),
+    ("ML-инженер", "Опыт от 1 года", "junior"),
+    # several mentions: the largest requirement wins
+    ("SRE", "3+ years of Linux experience, 1+ year of Kubernetes experience", "middle"),
+    # years of the company, not of experience
+    ("Developer", "Our company has 10 years on the market", None),
+    # years beat level words in the text ("work with senior engineers")
+    ("Developer", "You will work with senior engineers. 2+ years of experience", "middle"),
+    # the title still wins
+    ("Junior Developer", "5+ years of experience", "junior"),
+    ("Director of Engineering", "", "lead"),
+    ("Engineering Manager", "", "lead"),
+    ("Директор по разработке", "", "lead"),
+])
+def test_detect_seniority_from_experience(title, text, expected):
+    assert detect_seniority(title, text) == expected

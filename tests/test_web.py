@@ -226,6 +226,26 @@ def test_filters_map_to_search(client, conn, seeded):
     assert "Python Developer" in r and "Go Dev" not in r
 
 
+def test_level_filter_in_page(client, conn):
+    seed(conn, title="Senior Go Dev", company="A", seniority="senior")
+    seed(conn, title="Mystery Dev", company="B")
+    html = client.get("/").text
+    assert "Уровень" in html and 'name="level" value="none"' in html
+    r = client.get("/list", params={"level": "senior"})
+    assert "Senior Go Dev" in r.text and "Mystery Dev" not in r.text
+    assert "level=senior" in r.headers["HX-Replace-Url"]
+    r = client.get("/list", params={"level": ["", "none"]}).text
+    assert "Mystery Dev" in r and "Senior Go Dev" not in r
+    r = client.get("/list", params={"level": ""}).text  # every level unchecked
+    assert "Mystery Dev" not in r and "Senior Go Dev" not in r
+    assert client.get("/list", params={"level": "bogus"}).status_code == 200
+
+
+def test_fits_me_button_placeholder(client, conn, seeded):
+    html = client.get(f"/jobs/{seeded}").text
+    assert "Подходит мне" in html and 'aria-disabled="true"' in html
+
+
 def test_fresh_filter(client, conn):
     seed(conn, title="Old Job", company="O", when=datetime.now(UTC) - timedelta(days=5))
     assert "Old Job" not in client.get("/list").text  # default fresh_days=3

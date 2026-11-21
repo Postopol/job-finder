@@ -98,6 +98,7 @@ class SearchParams:
     sources: list[str] | None = None
     langs: list[str] | None = None
     scopes: list[str] | None = None
+    levels: list[str] | None = None  # junior|middle|senior|lead|none
     salary_min_usd: int | None = None
     include_no_salary: bool = True
     fresh_days: int | None = 3
@@ -148,6 +149,14 @@ def _where(p: SearchParams, section: str, now: datetime) -> tuple[str, list] | N
             if not values:
                 return None  # empty selection matches nothing
             conds.append(_in(column, values, args))
+    if p.levels is not None:
+        if not p.levels:
+            return None
+        known = [v for v in p.levels if v != "none"]
+        parts = [_in("j.seniority", known, args)] if known else []
+        if "none" in p.levels:
+            parts.append("j.seniority IS NULL")
+        conds.append("(" + " OR ".join(parts) + ")")
     if p.salary_min_usd is not None:
         cond = "j.salary_usd_month >= ?"
         args.append(p.salary_min_usd)

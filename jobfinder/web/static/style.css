@@ -215,7 +215,8 @@ legend.label { margin-bottom: var(--space-2); }
 .prose img { max-width: 100%; height: auto; }
 .prose pre, .prose code { font-family: ui-monospace, monospace; background: var(--terminal); }
 .prose pre { padding: var(--space-3); overflow-x: auto; }
-.phase2-note { max-width: 720px; padding: var(--space-4) 20px; border: 1px dashed var(--line-strong); color: var(--ink-mute); font-size: 13px; line-height: 18px; }
+.fits-me[aria-disabled="true"] { border-style: dashed; color: var(--ink-mute); cursor: not-allowed; }
+.fits-me[aria-disabled="true"]:hover { border-color: var(--line-strong); color: var(--ink-mute); }
 
 /* ---------- shared form controls (screens C, D) ---------- */
 .topbar-link { color: var(--on-band-mute); font-size: 13px; }

@@ -142,3 +142,16 @@ def test_fts_migrates_old_single_column_table(conn, now):
     conn.execute("INSERT INTO jobs_fts(rowid, body) VALUES (1, 'old')")
     ensure_fts(conn)
     assert titles(search_jobs(conn, SearchParams(text="product"), now)) == ["Product Manager"]
+
+
+def test_level_filter(conn, now):
+    add(conn, title="Senior Go Engineer")
+    add(conn, title="Junior QA")
+    add(conn, title="Developer")  # level unknown
+    assert titles(search_jobs(conn, SearchParams(levels=["senior"]), now)) == ["Senior Go Engineer"]
+    assert sorted(titles(search_jobs(conn, SearchParams(levels=["junior", "none"]), now))) == \
+        ["Developer", "Junior QA"]
+    assert titles(search_jobs(conn, SearchParams(levels=["none"]), now)) == ["Developer"]
+    assert search_jobs(conn, SearchParams(levels=[]), now) == []
+    assert len(search_jobs(conn, SearchParams(levels=None), now)) == 3
+    assert count_sections(conn, SearchParams(levels=["senior"]), now)["feed"] == 1
