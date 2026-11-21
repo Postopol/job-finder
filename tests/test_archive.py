@@ -151,14 +151,32 @@ def test_reparse_merges_postings_keeps_salary(conn, now):
 def test_reparse_updates_dedup_key_and_salary_usd(conn, now):
     jid, _ = db.upsert_job(conn, mk(raw={"id": 1, "sal": 1000}), None, now)
     before = db.get_job(conn, jid)
-    archive.reparse(conn, None, {"s1": FakeSource("s1", title="Rust Engineer")})
-    after = db.get_job(conn, jid)
-    assert after["dedup_key"] != before["dedup_key"]
-    archive.reparse(conn, None, {"s1": FakeSource("s1", title="Rust Engineer")})
     conn.execute("UPDATE postings SET raw=? WHERE job_id=?",
                  (zlib.compress(json.dumps({"id": 1, "sal": 2000}).encode()), jid))
-    archive.reparse(conn, None, {"s1": FakeSource("s1")})
-    assert db.get_job(conn, jid)["salary_usd_month"] == 2000
+    assert archive.reparse(conn, None, {"s1": FakeSource("s1", title="Rust Engineer")}) == 1
+    after = db.get_job(conn, jid)
+    assert after["dedup_key"] != before["dedup_key"]
+    assert after["salary_usd_month"] == 2000
+
+
+def test_reparse_keeps_values_when_a_posting_lost_raw(conn, now):
+    jid, _ = db.upsert_job(conn, mk(source="s1", source_id="1", raw={"id": 1}), None, now)
+    db.upsert_job(conn, mk(source="s2", source_id="2", salary_min=5000, salary_max=5000,
+                                    salary_currency="USD", salary_period="month",
+                                    raw={"id": 2, "sal": 5000}), None, now)
+    conn.execute("UPDATE postings SET raw=NULL WHERE source='s2'")
+    srcs = {"s1": FakeSource("s1", title="New Title"), "s2": FakeSource("s2")}
+    assert archive.reparse(conn, None, srcs) == 1
+    j = db.get_job(conn, jid)
+    assert j["title"] == "New Title"
+    assert j["salary_max"] == 5000
+
+
+def test_reparse_all_raw_allows_field_to_become_none(conn, now):
+    jid, _ = db.upsert_job(conn, mk(salary_min=1, salary_max=1, salary_currency="USD",
+                                    salary_period="month", raw={"id": 1}), None, now)
+    assert archive.reparse(conn, None, {"s1": FakeSource("s1")}) == 1
+    assert db.get_job(conn, jid)["salary_max"] is None
 
 
 def test_reparse_isolates_corrupt_raw(conn, now):

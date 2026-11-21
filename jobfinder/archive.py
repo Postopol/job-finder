@@ -82,6 +82,21 @@ def _merge(jobs: list[Job]) -> Job:
     return merged
 
 
+def _keep_existing(conn, job_id: int, merged: Job) -> None:
+    """Some postings were not re-parsed: do not erase what they contributed."""
+    old = db.get_job(conn, job_id)
+    for n in _SCALARS:
+        if getattr(merged, n) is None and old[n] is not None:
+            val = old[n]
+            setattr(merged, n, datetime.fromisoformat(val) if n == "published_at" else val)
+    for n in _LISTS:
+        if not getattr(merged, n):
+            setattr(merged, n, old[n])
+    if len(old["description_html"] or "") > len(merged.description_html or ""):
+        merged.description_html = old["description_html"]
+        merged.description_text = old["description_text"]
+
+
 def reparse(conn, source: str | None = None, sources: dict[str, Source] | None = None) -> int:
     """Re-parse saved raw with current parsers, no network. Returns updated jobs count."""
     sources = REGISTRY if sources is None else sources
@@ -111,7 +126,12 @@ def reparse(conn, source: str | None = None, sources: dict[str, Source] | None =
                 parsed.append((job, _prepare(job, cfg)))
             if not parsed:
                 continue
-            db.update_job_fields(conn, job_id, _merge([j for j, _ in parsed]), parsed[0][1])
+            merged = _merge([j for j, _ in parsed])
+            total = conn.execute("SELECT COUNT(*) FROM postings WHERE job_id=?",
+                                 (job_id,)).fetchone()[0]
+            if len(parsed) < total:
+                _keep_existing(conn, job_id, merged)
+            db.update_job_fields(conn, job_id, merged, parsed[0][1])
             count += 1
         except Exception:
             log.warning("reparse: не удалось обработать вакансию %s", job_id, exc_info=True)
