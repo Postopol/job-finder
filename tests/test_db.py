@@ -105,3 +105,52 @@ def test_old_duplicate_not_merged(conn, now):
     a, _ = upsert_job(conn, mk(source="hh"), None, now)
     b, new = upsert_job(conn, mk(source="habr", source_id="9"), None, now + timedelta(days=31))
     assert new and a != b
+
+
+def test_no_company_does_not_merge_across_sources(conn, now):
+    a, _ = upsert_job(conn, mk(source="hh", company=None), None, now)
+    b, new = upsert_job(conn, mk(source="habr", source_id="9", company=None), None, now)
+    assert new and a != b
+
+
+def test_settings_returned_are_copies(conn):
+    get_setting(conn, "stopwords").append("x")
+    all_settings(conn)["rates"]["USD"] = 99
+    assert get_setting(conn, "stopwords") == []
+    assert get_setting(conn, "rates")["USD"] == 1
+
+
+def test_secondary_source_does_not_erase_data(conn, now):
+    full = mk(source="hh", salary_min=1000, salary_max=2000, salary_currency="USD",
+              salary_period="month", location_raw="Remote", countries=["KZ"], stack=["python"],
+              seniority="senior", raw={"a": 1})
+    jid, _ = upsert_job(conn, full, None, now)
+    bare = mk(source="habr", source_id="9", raw=None)
+    upsert_job(conn, bare, None, now)
+    g = get_job(conn, jid)
+    assert (g["salary_min"], g["salary_max"], g["salary_currency"]) == (1000, 2000, "USD")
+    assert g["location_raw"] == "Remote" and g["countries"] == ["KZ"] and g["stack"] == ["python"]
+    assert g["seniority"] == "senior"
+    assert conn.execute("SELECT salary_usd_month FROM jobs WHERE id=?", (jid,)).fetchone()[0] == 2000
+
+
+def test_update_latest_scope_and_hidden_reason_win(conn, now):
+    jid, _ = upsert_job(conn, mk(remote_scope="worldwide"), "x", now)
+    upsert_job(conn, mk(remote_scope="cis"), None, now)
+    g = get_job(conn, jid)
+    assert g["remote_scope"] == "cis" and g["hidden_reason"] is None
+
+
+def test_raw_roundtrip_and_kept_on_none(conn, now):
+    import json, zlib
+    jid, _ = upsert_job(conn, mk(raw={"k": "значение"}), None, now)
+    upsert_job(conn, mk(raw=None), None, now)
+    blob = conn.execute("SELECT raw FROM postings WHERE job_id=?", (jid,)).fetchone()[0]
+    assert json.loads(zlib.decompress(blob)) == {"k": "значение"}
+
+
+def test_set_status_rejects_unknown(conn, now):
+    import pytest
+    jid, _ = upsert_job(conn, mk(), None, now)
+    with pytest.raises(ValueError):
+        set_status(conn, jid, "bogus", now)

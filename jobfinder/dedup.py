@@ -5,10 +5,19 @@ import re
 _BRACKETS = re.compile(r"\([^)]*\)|\[[^\]]*\]")
 _PUNCT = re.compile(r"[^\w\s]|_", re.UNICODE)
 _DROP = {
-    "remote", "удаленно", "fulltime", "full-time", "full", "time",
+    "remote", "удаленно",
     "senior", "junior", "middle", "lead", "sr", "jr", "mid", "intern", "principal", "staff",
     "сеньор", "джуниор", "джун", "мидл", "лид", "старший", "ведущий", "младший",
 }
+
+
+_TECH = [
+    (re.compile(r"(?<!\w)c\+\+"), "cpp"),
+    (re.compile(r"(?<!\w)c#"), "csharp"),
+    (re.compile(r"\.net(?!\w)"), "dotnet"),
+    (re.compile(r"node\.js"), "nodejs"),
+]
+_FULLTIME = re.compile(r"full[\s-]?time")
 
 
 def _base(s: str) -> str:
@@ -18,7 +27,9 @@ def _base(s: str) -> str:
 def dedup_key(company: str | None, title: str) -> str:
     t = _base(title)
     t = _BRACKETS.sub(" ", t)
-    t = t.replace("full-time", " ")
+    for rx, repl in _TECH:
+        t = rx.sub(repl, t)
+    t = _FULLTIME.sub(" ", t)
     t = _PUNCT.sub(" ", t)
     words = [w for w in t.split() if w not in _DROP]
     c = " ".join(_base(company or "").split())
