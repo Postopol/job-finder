@@ -1,0 +1,152 @@
+# Халал-фильтр: вакансии этих сфер не собираются и не сохраняются.
+# Можно дополнять. «*» в конце слова — любое окончание («казино*» → «казино», «казином»).
+#
+#   companies — ищутся только в названии компании (бренды: «Сбер» в описании обычной
+#               компании значит «интеграция со СберПэй», а не «работа в банке»);
+#   words     — в названии вакансии и компании;
+#   phrases   — везде, включая описание. Только однозначные фразы: «азартный» в описании
+#               часто про характер кандидата, «tobacco-free campus» — про офис в США.
+
+[gambling]
+label = "казино и ставки"
+companies = [
+  "1xbet", "1хбет", "parimatch", "париматч", "pin-up", "pinup", "pin up", "fonbet", "фонбет",
+  "winline", "винлайн", "betboom", "бетбум", "melbet", "мелбет", "лига ставок", "olimpbet",
+  "олимпбет", "betcity", "бетсити", "leonbets", "леон", "marathonbet", "марафонбет", "bet365",
+  "betsson", "betway", "playtech", "evolution gaming", "draftkings", "fanduel",
+  "flutter entertainment", "entain", "stake", "888 holdings", "kindred group", "superbet",
+  "sportradar", "softswiss",
+]
+words = [
+  "casino*", "igaming", "i-gaming", "gambling", "betting", "sportsbook*", "bookmaker*", "poker",
+  "lotter*", "bingo", "slot machine*", "binary options", "казино", "гемблинг*", "беттинг*",
+  "букмекер*", "азартн* игр*", "лотере*", "ставк* на спорт", "тотализатор*",
+  "бинарн* опцион*",
+]
+phrases = [
+  "igaming", "i-gaming", "online casino*", "casino*", "gambling", "sportsbook*",
+  "sports betting", "betting company", "betting platform*", "betting industry", "betting operator*",
+  "bookmaker*", "binary options", "онлайн-казино", "казино", "гемблинг*", "беттинг*", "букмекер*",
+  "азартн* игр*", "ставк* на спорт", "бинарн* опцион*",
+]
+
+[alcohol]
+label = "алкоголь"
+companies = [
+  "ab inbev", "anheuser-busch", "heineken", "diageo", "pernod ricard", "carlsberg", "балтика",
+  "красное & белое", "красное и белое", "бристоль", "винлаб", "simplewine", "ароматный мир",
+  "ладога",
+]
+words = [
+  "alcohol*", "brewer*", "winery", "wineries", "distiller*", "liquor", "алкогол*", "пивовар*",
+  "ликеро*", "ликёро*", "винодел*", "водк*",
+]
+phrases = [
+  "alcohol brand*", "alcoholic beverage*", "brewery", "breweries", "brewing company", "winery",
+  "wineries", "distillery", "distilleries", "liquor", "алкогольн* продукц*", "алкогольн* напит*",
+  "пивоварен*", "ликеро-водоч*", "ликёро-водоч*", "винодельн*",
+]
+
+[pork]
+label = "свинина"
+words = ["pork", "pig farm*", "свинин*", "свиновод*"]
+phrases = ["pork", "pig farm*", "свинин*", "свиновод*"]
+
+[adult]
+label = "18+"
+words = [
+  "porn*", "adult content", "adult entertainment", "onlyfans", "webcam model*", "cam model*",
+  "эроти*", "порно*", "вебкам*", "интим*", "секс-шоп*", "sex shop*", "sex toy*",
+]
+phrases = [
+  "adult content", "adult entertainment", "adult industry", "onlyfans", "webcam model*",
+  "cam model*", "эротическ*", "порно*", "вебкам*", "секс-шоп*", "sex shop*", "sex toy*",
+  "18+ контент*",
+]
+
+[drugs]
+label = "наркотики и каннабис"
+words = ["cannabis", "marijuana", "cbd", "thc", "dispensar*", "kratom", "каннабис*", "марихуан*"]
+phrases = [
+  "cannabis industry", "cannabis company", "cannabis brand*", "cannabis dispensar*",
+  "cannabis retail*", "cannabis market*", "cannabis platform*", "cannabis software",
+  "cannabis operator*", "cannabis business*", "in cannabis", "dispensary", "dispensaries",
+  "cbd product*", "hemp-derived", "thc product*",
+]
+
+[tobacco]
+label = "табак и вейпы"
+companies = [
+  "philip morris", "british american tobacco", "japan tobacco", "imperial brands", "juul",
+  "iqos",
+]
+words = [
+  "tobacco", "vape*", "vaping", "e-cigarette*", "cigarette*", "cigar", "cigars", "nicotine",
+  "hookah", "табак*", "вейп*", "никотин*", "кальян*", "сигарет*",
+]
+phrases = [
+  "tobacco company", "tobacco industry", "tobacco product*", "tobacco brand*", "vape*", "vaping",
+  "e-cigarette*", "nicotine product*", "hookah", "табачн*", "вейп*", "кальян*",
+  "электронн* сигарет*",
+]
+
+[finance]
+label = "банки, кредиты, страхование"
+companies = [
+  "сбер", "сбербанк", "sber", "sberbank", "sberdevices", "сбердевайсы", "sbertech", "сбертех",
+  "т-банк", "t-bank", "тинькофф", "tinkoff", "альфа-банк", "aльфа-банк", "alfa-bank", "альфабанк",
+  "втб", "vtb", "газпромбанк", "gazprombank", "райффайзен*", "raiffeisen*", "росбанк",
+  "совкомбанк", "sovcombank", "мкб", "московский кредитный банк", "ozon банк", "ozon bank",
+  "вб банк", "яндекс банк", "yandex bank", "kaspi", "каспи", "halyk", "халык", "jusan",
+  "forte bank", "фортебанк", "bereke", "revolut", "monzo", "nubank", "chime", "n26",
+  "starling bank", "klarna", "affirm", "afterpay", "sofi", "lendingclub", "upstart",
+  "ингосстрах", "росгосстрах", "согаз", "альфастрахование", "ресо-гарантия", "allianz", "axa",
+  "metlife", "aig", "prudential",
+]
+words = [
+  "bank", "banks", "banking", "neobank*", "банк", "банка", "банке", "банку", "банком", "банки",
+  "банков", "банковск*", "банкинг*", "необанк*", "insurance", "insurtech", "reinsurance",
+  "insurer*", "страхов*", "lending", "lender*", "loan", "loans", "mortgage*", "credit card*",
+  "credit risk", "credit scoring", "microfinance", "microloan*", "payday", "bnpl",
+  "buy now pay later", "debt collection", "кредит*", "ипотек*", "микрофинанс*", "мфо", "займ*",
+  "микрозайм*", "коллекторск*",
+]
+phrases = [
+  "системно значим* банк*", "мы банк", "мы — банк", "цифров* банк", "частн* банк",
+  "коммерческ* банк", "российск* банк", "универсальн* банк", "банковск* групп*",
+  "банковск* лицензи*", "we are a bank", "licensed bank", "digital bank", "neobank*",
+  "challenger bank", "retail bank", "commercial bank", "insurance company", "insurance carrier",
+  "insurtech", "lending platform", "lending company", "loan provider", "online lender",
+  "consumer lending", "payday loan*",
+  "microfinance", "microloan*", "страхов* компани*", "страхов* групп*",
+  "микрофинансов* организац*", "микрозайм*", "онлайн-займ*", "кредитн* организац*",
+  "потребительск* кредит*",
+]
+
+# «коллекторск*», а не «коллектор*»: «коллектор метрик» — это DevOps
+# BNPL и МФО в описании не ищем: «интеграция с BNPL/МФО» пишут обычные магазины и платёжки
+
+[arbitrage]
+label = "арбитраж"
+# не «арбитраж*»: «арбитражные споры», «арбитражный суд» — это юристы
+words = [
+  "arbitrage", "арбитраж* трафик*", "арбитражник*", "p2p-арбитраж*", "p2p арбитраж*",
+  "крипто-арбитраж*", "криптоарбитраж*", "арбитраж* криптовалют*", "арбитраж* крипты",
+  "статистическ* арбитраж*", "stat arb",
+]
+phrases = [
+  "statistical arbitrage", "stat arb", "traffic arbitrage", "crypto arbitrage", "p2p arbitrage",
+  "арбитраж* трафик*", "p2p-арбитраж*", "p2p арбитраж*", "крипто-арбитраж*", "криптоарбитраж*",
+  "арбитраж* криптовалют*", "статистическ* арбитраж*",
+]
+
+[other]
+label = "гадания, пирамиды, серые схемы"
+words = [
+  "astrolog*", "tarot", "fortune teller*", "астролог*", "таро", "гадалк*", "нумеролог*",
+  "mlm", "multi-level marketing", "сетев* маркетинг*", "обнал*",
+]
+phrases = [
+  "astrology app*", "tarot", "астролог*", "нумерологи*", "multi-level marketing",
+  "сетев* маркетинг*", "финансов* пирамид*", "обнал*", "серые схемы",
+]

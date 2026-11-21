@@ -26,8 +26,8 @@ def run_collect(db_path: Path | str) -> None:
             log.info("сбор пропущен: уже идёт или все источники выключены")
         for r in results:
             if r.ok:
-                log.info("%s: получено %d, новых %d, пропущено %d", r.source, r.fetched, r.new,
-                         r.skipped)
+                log.info("%s: получено %d, новых %d, пропущено %d, халал-фильтр −%d", r.source,
+                         r.fetched, r.new, r.skipped, r.banned)
             else:
                 log.warning("%s: ошибка: %s", r.source, r.error)
     except Exception:

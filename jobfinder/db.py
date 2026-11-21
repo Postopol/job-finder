@@ -16,7 +16,7 @@ from .models import STATUSES, Job
 DEFAULT_SETTINGS = {
     "country": "KZ", "interval_hours": 6, "max_pages": 5, "fresh_days": 3,
     "archive_days": 7, "purge_days": 90, "stopwords": [], "hh_token": "",
-    "disabled_sources": [],
+    "disabled_sources": [], "halal": True,
     "rates": {"USD": 1, "EUR": 1.08, "GBP": 1.27, "RUB": 0.011, "KZT": 0.002},
 }
 
@@ -82,6 +82,13 @@ CREATE TABLE IF NOT EXISTS runs (
     error TEXT,
     skipped INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS banned (
+    source TEXT NOT NULL,
+    source_id TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    seen_at TEXT NOT NULL,
+    PRIMARY KEY (source, source_id)
+);
 CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -110,6 +117,7 @@ def connect(path: Path | str) -> sqlite3.Connection:
 # Columns added after the first release: (table, column, declaration).
 _ADDED_COLUMNS = [
     ("runs", "skipped", "INTEGER NOT NULL DEFAULT 0"),
+    ("runs", "banned", "INTEGER NOT NULL DEFAULT 0"),
     # 1 = description from a detail page, 0 = from the listing, NULL = stored before tracking
     ("jobs", "description_detail", "INTEGER"),
 ]
@@ -303,6 +311,18 @@ def update_job_fields(conn: sqlite3.Connection, job_id: int, job: Job,
         search.index_job(conn, job_id)
 
 
+def banned_ids(conn: sqlite3.Connection, source: str) -> set[str]:
+    """Ids the halal filter dropped: not stored as jobs, not asked about again."""
+    return {r[0] for r in conn.execute("SELECT source_id FROM banned WHERE source=?", (source,))}
+
+
+def add_banned(conn: sqlite3.Connection, source: str, source_id: str, reason: str,
+               now: datetime) -> None:
+    with _tx(conn):
+        conn.execute("INSERT OR REPLACE INTO banned(source, source_id, reason, seen_at) "
+                     "VALUES(?,?,?,?)", (source, source_id, reason, _iso(now)))
+
+
 def known_source_ids(conn: sqlite3.Connection, source: str) -> set[str]:
     return {r[0] for r in conn.execute("SELECT source_id FROM postings WHERE source=?", (source,))}
 
@@ -346,11 +366,11 @@ def start_run(conn: sqlite3.Connection, source: str, now: datetime) -> int:
 
 
 def finish_run(conn: sqlite3.Connection, run_id: int, ok: bool, fetched: int, new: int,
-               error: str | None, now: datetime, skipped: int = 0) -> None:
+               error: str | None, now: datetime, skipped: int = 0, banned: int = 0) -> None:
     with _tx(conn):
         conn.execute(
-            "UPDATE runs SET finished_at=?, ok=?, fetched=?, new=?, error=?, skipped=? WHERE id=?",
-            (_iso(now), int(ok), fetched, new, error, skipped, run_id))
+            "UPDATE runs SET finished_at=?, ok=?, fetched=?, new=?, error=?, skipped=?, banned=? "
+            "WHERE id=?", (_iso(now), int(ok), fetched, new, error, skipped, banned, run_id))
 
 
 def last_runs(conn: sqlite3.Connection) -> dict[str, sqlite3.Row]:

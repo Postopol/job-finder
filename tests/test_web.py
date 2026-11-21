@@ -529,3 +529,24 @@ def test_failing_source_state_is_red(client):
     css = client.get("/static/style.css").text
     rules = dict(re.findall(r"(\.state--error(?: \.dot)?) \{([^}]*)\}", css))
     assert "var(--garnet)" in rules[".state--error"] and "var(--garnet)" in rules[".state--error .dot"]
+
+
+def test_sources_page_shows_halal_count(client, conn):
+    now = datetime.now(UTC)
+    run = start_run(conn, "hh", now)
+    finish_run(conn, run, True, 40, 7, None, now, banned=5)
+    assert "халал-фильтр: −5" in client.get("/sources").text
+
+
+def test_halal_setting_toggle(client, conn):
+    jid = seed(conn, title="Designer (iGaming)", company="X")
+    page = client.get("/sources").text
+    assert 'name="halal"' in page and "Халал-фильтр" in page
+    # off: the box is unticked, only the marker is sent
+    client.post("/settings", data={"halal_sent": "1"})
+    assert get_setting(conn, "halal") is False
+    assert get_job(conn, jid) is not None
+    # on: banned jobs already in the base are removed right away
+    client.post("/settings", data={"halal_sent": "1", "halal": "1"})
+    assert get_setting(conn, "halal") is True
+    assert get_job(conn, jid) is None

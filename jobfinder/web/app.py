@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup, escape
 
-from .. import archive, collector, db, scheduler
+from .. import archive, collector, db, halal, scheduler
 from ..models import STATUSES
 from ..search import SECTIONS, SearchParams, count_sections, search_jobs
 from ..sources import REGISTRY
@@ -405,12 +405,13 @@ def _source_row(name: str, run: sqlite3.Row | None, disabled: set[str],
     src = REGISTRY[name]
     row = {"name": name, "label": source_label(name), "lang": (src.lang or "").upper(),
            "method": src.method, "on": name not in disabled, "last": "—", "new": "—",
-           "skipped": 0}
+           "skipped": 0, "banned": 0}
     if run is not None:
         row["last"] = ago(run["finished_at"] or run["started_at"], now) or "—"
         if run["finished_at"]:
             row["new"] = run["new"] or 0
             row["skipped"] = run["skipped"] or 0
+            row["banned"] = run["banned"] or 0
     if not row["on"]:
         row["state"], row["tone"] = "выключен", "off"
     elif run is None:
@@ -468,6 +469,8 @@ def parse_settings_form(form: dict[str, str | None]) -> tuple[dict, list[str]]:
     if form.get("stopwords") is not None:
         words = form["stopwords"].replace("\n", ",").split(",")
         changes["stopwords"] = list(dict.fromkeys(w.strip() for w in words if w.strip()))
+    if form.get("halal_sent"):  # an unticked checkbox sends nothing, the marker always comes
+        changes["halal"] = bool(form.get("halal"))
     token = (form.get("hh_token") or "").strip()
     if form.get("hh_token_clear"):
         changes["hh_token"] = ""
@@ -484,7 +487,8 @@ def _settings_context(conn: sqlite3.Connection, form: dict | None = None,
     for key in values:  # on error, show what the user typed so it can be fixed
         if form and form.get(key) is not None:
             values[key] = form[key]
-    return {"settings": values, "token_set": bool(s.get("hh_token")),
+    return {"settings": values, "token_set": bool(s.get("hh_token")), "halal": bool(s["halal"]),
+            "halal_labels": ", ".join(halal.labels().values()),
             "errors": errors or [], "saved": saved}
 
 
@@ -628,11 +632,14 @@ def create_app(db_path: Path | str, start_scheduler: bool = True,
                       fresh_days: str | None = Form(None), stopwords: str | None = Form(None),
                       stopwords_sent: str | None = Form(None),
                       hh_token: str | None = Form(None), hh_token_clear: str | None = Form(None),
+                      halal_on: str | None = Form(None, alias="halal"),
+                      halal_sent: str | None = Form(None),
                       conn: sqlite3.Connection = Depends(get_conn)):
         if stopwords is None and stopwords_sent:  # FastAPI turns an empty field into None
             stopwords = ""
         form = {"interval_hours": interval_hours, "fresh_days": fresh_days,
-                "stopwords": stopwords, "hh_token": hh_token, "hh_token_clear": hh_token_clear}
+                "stopwords": stopwords, "hh_token": hh_token, "hh_token_clear": hh_token_clear,
+                "halal": halal_on, "halal_sent": halal_sent}
         changes, errors = parse_settings_form(form)
         htmx = "hx-request" in request.headers
         if errors:
@@ -646,6 +653,8 @@ def create_app(db_path: Path | str, start_scheduler: bool = True,
             db.set_setting(conn, key, value)
         if "stopwords" in changes:  # hide or un-hide jobs already in the base right away
             archive.reapply_stopwords(conn, changes["stopwords"])
+        if changes.get("halal"):  # turned on: remove banned jobs already in the base
+            archive.purge_banned(conn, datetime.now(UTC))
         hours = changes.get("interval_hours", old_hours)
         if hours != old_hours and app.state.scheduler is not None:
             scheduler.reschedule(app.state.scheduler, hours)

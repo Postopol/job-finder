@@ -7,6 +7,7 @@
   <td>
     <span class="state state--{{ s.tone }}"><span class="dot" aria-hidden="true"></span><span>{{ s.state }}</span></span>
     {% if s.skipped %}<span class="state__skipped">пропущено {{ s.skipped }}</span>{% endif %}
+    {% if s.banned %}<span class="state__skipped">халал-фильтр: −{{ s.banned }}</span>{% endif %}
   </td>
   <td><input type="checkbox" class="src-toggle" {% if s.on %}checked{% endif %} aria-label="Включить {{ s.label }}"
              hx-post="/sources/{{ s.name }}/toggle" hx-target="closest tr" hx-swap="outerHTML"></td>

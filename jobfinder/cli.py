@@ -87,7 +87,7 @@ def cmd_collect(args) -> int:
     for r in results:
         state = ("ok" + (f" ({r.error})" if r.error else "")) if r.ok else f"ошибка: {r.error}"
         print(f"{r.source:<14} {state} · получено {r.fetched}, новых {r.new}, "
-              f"пропущено {r.skipped}, запросов {r.requests}")
+              f"пропущено {r.skipped}, халал-фильтр −{r.banned}, запросов {r.requests}")
     return 0 if any(r.ok for r in results) else 1
 
 

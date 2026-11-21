@@ -314,3 +314,19 @@ def test_reparse_salary_group_not_mixed(conn, now):
     j = db.get_job(conn, jid)
     assert (j["salary_min"], j["salary_max"], j["salary_currency"], j["salary_period"]) == \
         (None, 3000, "EUR", "month")
+
+
+def test_purge_banned_removes_stored_banned_jobs_but_keeps_marked(conn, now):
+    from jobfinder import archive, db
+    from jobfinder.normalize import normalize_job
+    ok, _ = db.upsert_job(conn, normalize_job(mk(source_id="1", url="https://x/1")), None, now)
+    bad, _ = db.upsert_job(conn, normalize_job(mk(source_id="2", url="https://x/2",
+                                                  title="Designer (iGaming)")), None, now)
+    kept, _ = db.upsert_job(conn, normalize_job(mk(source_id="3", url="https://x/3",
+                                                   title="Data Scientist", company="Сбер")), None, now)
+    db.set_status(conn, kept, "interesting", now)
+    assert archive.purge_banned(conn, now) == 1
+    ids = {r[0] for r in conn.execute("SELECT id FROM jobs")}
+    assert ids == {ok, kept}
+    assert conn.execute("SELECT COUNT(*) FROM jobs_fts WHERE rowid=?", (bad,)).fetchone()[0] == 0
+    assert db.banned_ids(conn, "s1") == {"2"}

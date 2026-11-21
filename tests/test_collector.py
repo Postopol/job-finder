@@ -364,3 +364,49 @@ def test_is_running_through_symlinked_dir(tmp_path):
         assert collector.lock_path(link / "j.db") == collector.lock_path(real / "j.db")
     finally:
         conn.close()
+
+
+class Recording(Fixed):
+    """Records which jobs the collector asked details for and what `known` held."""
+
+    def fetch(self, client, known, wants, settings):
+        self.known = set(known)
+        self.wanted = [j.source_id for j in self.jobs if wants(j)]
+        return list(self.jobs)
+
+
+def _count(conn, sql="SELECT COUNT(*) FROM jobs"):
+    return conn.execute(sql).fetchone()[0]
+
+
+def test_halal_filter_drops_banned_jobs_without_details(conn):
+    jobs = [mk(source="r", source_id="1", url="https://x/1", title="Python Developer"),
+            mk(source="r", source_id="2", url="https://x/2", title="Designer (iGaming)"),
+            mk(source="r", source_id="3", url="https://x/3", title="Go Developer",
+               company="Hidden", description_text="Мы разрабатываем ПО для iGaming.")]
+    src = Recording("r", jobs)
+    res = run(conn, {"r": src})
+    assert src.wanted == ["1"]  # no detail page for a job already seen as banned
+    assert _count(conn) == 1 and res[0].new == 1 and res[0].banned == 2
+    assert last_runs(conn)["r"]["banned"] == 2
+    # next run: banned ids count as known, so the site is not asked about them again
+    src2 = Recording("r", jobs)
+    run(conn, {"r": src2})
+    assert {"2", "3"} <= src2.known and _count(conn) == 1
+
+
+def test_banned_job_seen_again_without_description_stays_out(conn):
+    banned = mk(source="r", source_id="3", url="https://x/3", title="Go Developer",
+                company="Hidden", description_text="Мы разрабатываем ПО для iGaming.")
+    run(conn, {"r": Fixed("r", [banned])})
+    listing_only = mk(source="r", source_id="3", url="https://x/3", title="Go Developer",
+                      company="Hidden")
+    run(conn, {"r": Fixed("r", [listing_only])})
+    assert _count(conn) == 0
+
+
+def test_halal_filter_off_keeps_everything(conn):
+    set_setting(conn, "halal", False)
+    src = Recording("r", [mk(source="r", source_id="2", url="https://x/2", title="Designer (iGaming)")])
+    res = run(conn, {"r": src})
+    assert src.wanted == ["2"] and _count(conn) == 1 and res[0].banned == 0

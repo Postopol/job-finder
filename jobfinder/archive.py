@@ -6,7 +6,7 @@ import logging
 import zlib
 from datetime import datetime, timedelta
 
-from . import db
+from . import db, halal
 from .collector import _prepare
 from .filters import FilterConfig, stopword_reason
 from .models import Job
@@ -59,6 +59,36 @@ def purge_raw(conn, now: datetime) -> int:
             "WHERE j.archived_at IS NOT NULL AND j.archived_at<? "
             "AND COALESCE(s.status, 'new') IN ('new', 'seen'))", (cutoff,))
     return cur.rowcount
+
+
+def purge_banned(conn, now: datetime) -> int:
+    """Delete stored jobs the halal filter bans (kept if marked interesting/applied).
+
+    Their postings go to the `banned` table so collects do not fetch them again.
+    """
+    rows = conn.execute(
+        "SELECT j.id, j.title, j.company, j.description_text, COALESCE(s.status, 'new') AS st "
+        "FROM jobs j LEFT JOIN user_status s ON s.job_id=j.id").fetchall()
+    removed = 0
+    for r in rows:
+        if r["st"] in ("interesting", "applied"):
+            continue
+        reason = halal.banned_reason(Job(source="", source_id="", url="", title=r["title"],
+                                         company=r["company"],
+                                         description_text=r["description_text"] or ""))
+        if reason is None:
+            continue
+        postings = conn.execute("SELECT source, source_id FROM postings WHERE job_id=?",
+                                (r["id"],)).fetchall()
+        for p in postings:
+            db.add_banned(conn, p["source"], p["source_id"], reason, now)
+        with db._tx(conn):
+            conn.execute("DELETE FROM jobs_fts WHERE rowid=?", (r["id"],))
+            conn.execute("DELETE FROM jobs WHERE id=?", (r["id"],))
+        removed += 1
+    if removed:
+        log.info("халал-фильтр: удалено вакансий из базы: %d", removed)
+    return removed
 
 
 _SCALARS = ("company", "location_raw", "work_format", "seniority", "published_at")

@@ -25,6 +25,12 @@
     </div>
 
     <div class="field">
+      <input type="hidden" name="halal_sent" value="1">
+      <label class="check mid"><input type="checkbox" name="halal" value="1" {% if halal %}checked{% endif %}><span>Халал-фильтр</span></label>
+      <p class="note">Не собирать вакансии из сфер: {{ halal_labels }}. Список — в файле jobfinder/halal.toml.</p>
+    </div>
+
+    <div class="field">
       <label class="field__label" for="hh_token">Токен hh.ru (с dev.hh.ru)</label>
       <input id="hh_token" name="hh_token" type="password" autocomplete="new-password"
              placeholder="{{ 'задан — оставь пустым, чтобы не менять' if token_set else 'не задан' }}">

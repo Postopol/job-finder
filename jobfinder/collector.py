@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from . import db
+from . import db, halal
 from .filters import FilterConfig, classify_scope, hidden_reason
 from .http import PoliteClient, SourceBlocked
 from .models import Job
@@ -32,6 +32,7 @@ class RunResult:
     skipped: int
     requests: int
     error: str | None
+    banned: int = 0
 
 
 def _classify(job: Job, cfg: FilterConfig) -> str | None:
@@ -127,6 +128,9 @@ def collect(conn, sources: dict[str, Source] | None = None,
         with file_lock(db_file(conn)) as acquired:
             if not acquired:
                 return []
+            if db.get_setting(conn, "halal"):
+                from .archive import purge_banned  # archive imports this module
+                purge_banned(conn, now_fn())
             sources = REGISTRY if sources is None else sources
             if only is not None:
                 names = [only] if only in sources else []
@@ -140,7 +144,7 @@ def collect(conn, sources: dict[str, Source] | None = None,
 
 def _run_one(conn, source: Source, name: str, now_fn, client_factory) -> RunResult:
     run_id = db.start_run(conn, name, now_fn())
-    fetched = new = skipped = requests = 0
+    fetched = new = skipped = requests = banned = 0
     error: str | None = None
     note: str | None = None  # stored in runs.error of a successful run
     client = None
@@ -150,11 +154,16 @@ def _run_one(conn, source: Source, name: str, now_fn, client_factory) -> RunResu
         before = copy.deepcopy(settings)
         cfg = FilterConfig(country=settings["country"], stopwords=settings["stopwords"])
 
+        use_halal = bool(settings.get("halal"))
+        dropped = db.banned_ids(conn, name) if use_halal else set()
+
         def wants(job: Job) -> bool:
             probe = copy.deepcopy(job)
-            return _prepare(probe, cfg) is None
+            if _prepare(probe, cfg) is not None:
+                return False
+            return not (use_halal and halal.banned_reason(probe))  # no detail page for haram
 
-        jobs = source.fetch(client, db.known_source_ids(conn, name), wants, settings)
+        jobs = source.fetch(client, db.known_source_ids(conn, name) | dropped, wants, settings)
         fetched = len(jobs)
         for job in jobs:
             if not job.title or not job.url:
@@ -162,6 +171,13 @@ def _run_one(conn, source: Source, name: str, now_fn, client_factory) -> RunResu
                 continue
             try:
                 normalize_job(job)
+                if use_halal:
+                    reason = "dropped" if job.source_id in dropped else halal.banned_reason(job)
+                    if reason:  # not stored; remembered so the site is not asked again
+                        if reason != "dropped":
+                            db.add_banned(conn, name, job.source_id, reason, now_fn())
+                        banned += 1
+                        continue
                 # scope and hide reason come from the merged record: a listing item without
                 # its detail text must not undo a hide found in the stored description
                 _, is_new = db.upsert_job(conn, job, None, now_fn(),
@@ -187,5 +203,6 @@ def _run_one(conn, source: Source, name: str, now_fn, client_factory) -> RunResu
             except Exception:
                 log.warning("%s: ошибка закрытия клиента", name, exc_info=True)
     ok = error is None
-    db.finish_run(conn, run_id, ok, fetched, new, error or note, now_fn(), skipped=skipped)
-    return RunResult(name, ok, fetched, new, skipped, requests, error or note)
+    db.finish_run(conn, run_id, ok, fetched, new, error or note, now_fn(), skipped=skipped,
+                  banned=banned)
+    return RunResult(name, ok, fetched, new, skipped, requests, error or note, banned)
