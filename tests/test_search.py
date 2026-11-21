@@ -43,8 +43,17 @@ def test_synonyms(conn, now):
                                "'; DROP TABLE jobs;--", '+', '. . .', '""', '(a OR'])
 def test_fts_special_input_never_raises(conn, now, q):
     add(conn, title="C++ developer")
-    search_jobs(conn, SearchParams(text=q), now)
+    m = expand_query(q)
+    if m:  # unguarded: a broken MATCH must fail the test
+        conn.execute("SELECT rowid FROM jobs_fts WHERE jobs_fts MATCH ?", (m,)).fetchall()
+    assert isinstance(search_jobs(conn, SearchParams(text=q), now), list)
     count_sections(conn, SearchParams(text=q), now)
+
+
+@pytest.mark.parametrize("q", ["C++", "node.js", ".NET", "C#"])
+def test_special_tech_hits(conn, now, q):
+    add(conn, title="C++ developer", stack=["Node.js", ".NET", "C#"])
+    assert titles(search_jobs(conn, SearchParams(text=q), now)) == ["C++ developer"]
 
 
 def test_cplusplus_found(conn, now):
@@ -99,3 +108,11 @@ def test_stem_text():
     assert "cplusplus" in stem_text("C++ dev").split()
     assert "dotnet" in stem_text(".NET dev").split()
     assert stem_text("team.") == "team"
+
+
+def test_fts_backfill(conn, now):
+    from jobfinder.search import ensure_fts
+    add(conn, title="Rust Engineer")
+    conn.execute("DROP TABLE jobs_fts")
+    ensure_fts(conn)
+    assert titles(search_jobs(conn, SearchParams(text="rust"), now)) == ["Rust Engineer"]

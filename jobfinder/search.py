@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import sqlite3
 import tomllib
@@ -11,6 +12,8 @@ from functools import lru_cache
 from pathlib import Path
 
 import Stemmer
+
+log = logging.getLogger(__name__)
 
 _TOKEN_RE = re.compile(r"[\w+#.]+")
 _CYRILLIC_RE = re.compile(r"[а-я]")
@@ -24,6 +27,12 @@ SECTIONS = ("feed", "mine", "archive", "hidden")
 def ensure_fts(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE VIRTUAL TABLE IF NOT EXISTS jobs_fts USING fts5("
                  "body, tokenize='unicode61 remove_diacritics 2')")
+    # Backfill: FTS table is new/empty but jobs already exist.
+    if (conn.execute("SELECT 1 FROM jobs_fts LIMIT 1").fetchone() is None
+            and conn.execute("SELECT 1 FROM jobs LIMIT 1").fetchone() is not None):
+        for (job_id,) in conn.execute("SELECT id FROM jobs").fetchall():
+            index_job(conn, job_id)
+        conn.commit()
 
 
 def _tokens(text: str) -> list[str]:
@@ -154,7 +163,8 @@ def search_jobs(conn: sqlite3.Connection, p: SearchParams, now: datetime) -> lis
             f"SELECT {_COLS} {_FROM} WHERE {where} "
             "ORDER BY j.first_seen_at DESC, j.id DESC LIMIT ? OFFSET ?",
             [*args, p.limit, p.offset]).fetchall()
-    except sqlite3.OperationalError:  # last-resort guard; quoting should prevent this
+    except sqlite3.OperationalError as e:  # last-resort guard; quoting should prevent this
+        log.warning("search failed for %r: %s", p.text, e)
         return []
     return [dict(r) for r in rows]
 
@@ -170,6 +180,7 @@ def count_sections(conn: sqlite3.Connection, p: SearchParams, now: datetime) -> 
         try:
             counts[section] = conn.execute(
                 f"SELECT COUNT(*) {_FROM} WHERE {where}", args).fetchone()[0]
-        except sqlite3.OperationalError:
+        except sqlite3.OperationalError as e:
+            log.warning("count failed for %r: %s", p.text, e)
             counts[section] = 0
     return counts
