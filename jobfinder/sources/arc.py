@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html as _html
+import logging
 import re
 
 from ..http import PoliteClient, SourceError
@@ -9,6 +10,7 @@ from . import register
 from .base import ParseError, Source, next_data, paged
 from .geo import utc_from_epoch
 
+log = logging.getLogger(__name__)
 URL = "https://arc.dev/remote-jobs"
 DETAIL_URL = "https://arc.dev/remote-jobs/details/{slug}-{key}"
 LIST_PATH = ("props", "pageProps", "arcJobs")  # the page also has externalJobs (aggregated, mostly marketing)
@@ -81,7 +83,11 @@ class Arc(Source):
         try:
             job_data = next_data(client.get(job.url).text)["props"]["pageProps"]["job"]
             text = job_data.get("description")
-        except (SourceError, ParseError, KeyError, TypeError, AttributeError):
+        except SourceError as e:
+            log.info("%s: описание %s не загружено: %s", self.name, job.source_id, e)
+            return
+        except (ParseError, KeyError, TypeError, AttributeError) as e:
+            log.warning("%s: формат страницы вакансии %s изменился: %r", self.name, job.source_id, e)
             return
         if isinstance(text, str) and text.strip():
             job.description_text = text

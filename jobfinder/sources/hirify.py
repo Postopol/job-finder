@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html as _html
+import logging
 
 from ..http import PoliteClient, SourceError
 from ..models import Job
@@ -8,6 +9,7 @@ from . import register
 from .base import ParseError, Source, nuxt_data, paged
 from .geo import countries_from, utc_from_iso
 
+log = logging.getLogger(__name__)
 URL = "https://hirify.me/"
 JOB_URL = "https://hirify.me/jobs/{slug}"
 # IT specializations (codes verified against the site's own filter; `page` is disallowed by robots.txt)
@@ -90,7 +92,11 @@ class Hirify(Source):
             data = nuxt_data(client.get(job.url).text)["data"]
             vacancy = next(v for k, v in data.items() if k.startswith("vacancy-"))
             text = vacancy.get("text")
-        except (SourceError, ParseError, KeyError, TypeError, AttributeError, StopIteration):
+        except SourceError as e:
+            log.info("%s: описание %s не загружено: %s", self.name, job.source_id, e)
+            return
+        except (ParseError, KeyError, TypeError, AttributeError, StopIteration) as e:
+            log.warning("%s: формат страницы вакансии %s изменился: %r", self.name, job.source_id, e)
             return
         if isinstance(text, str) and text.strip():
             job.description_html = text

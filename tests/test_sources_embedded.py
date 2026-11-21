@@ -203,3 +203,35 @@ def test_hirify_detail_fills_description():
     jobs = hirify.SOURCE.fetch(client(h), set(), lambda j: True, {})
     assert any(p.startswith("/jobs/") for p in seen)
     assert any("Django" in j.description_html and len(j.description_html) > 500 for j in jobs)
+
+
+# --- detail failures are visible ---
+
+BAD_DETAIL = '<html><script id="__NEXT_DATA__">{"props": {"pageProps": {}}}</script></html>'
+BAD_NUXT = '<html><script id="__NUXT_DATA__">[{"data": 1}, {}]</script></html>'
+
+
+@pytest.mark.parametrize("mod,listing,bad", [(arc, "arc.html", BAD_DETAIL), (hirify, "hirify.html", BAD_NUXT)])
+def test_detail_layout_change_warns_and_keeps_job(mod, listing, bad, caplog):
+    def h(req):
+        return page(html(listing) if mod is hirify and "/jobs/" not in req.url.path
+                    or mod is arc and "/details/" not in req.url.path else bad)
+
+    with caplog.at_level("INFO", logger=mod.__name__):
+        jobs = mod.SOURCE.fetch(client(h), set(), lambda j: True, {})
+    assert jobs
+    assert any(r.levelname == "WARNING" and mod.SOURCE.name in r.getMessage() for r in caplog.records)
+
+
+@pytest.mark.parametrize("mod,listing", [(arc, "arc.html"), (hirify, "hirify.html")])
+def test_detail_http_error_keeps_job_without_warning(mod, listing, caplog):
+    def h(req):
+        if "/details/" in req.url.path or "/jobs/" in req.url.path:
+            return httpx.Response(404)
+        return page(html(listing))
+
+    with caplog.at_level("INFO", logger=mod.__name__):
+        jobs = mod.SOURCE.fetch(client(h), set(), lambda j: True, {})
+    assert jobs
+    assert not [r for r in caplog.records if r.levelname == "WARNING"]
+    assert any(r.levelname == "INFO" for r in caplog.records)
