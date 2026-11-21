@@ -57,6 +57,17 @@ def test_blocked_source_message(conn):
     assert "429" in res[0].error and not res[0].ok
 
 
+class BlockedClient(FakeClient):
+    blocked = 429
+
+
+def test_partly_blocked_source_keeps_jobs_and_notes_block(conn):
+    res = collect(conn, sources={"p": Fixed("p", [mk(source="p")])}, client_factory=BlockedClient)
+    assert res[0].ok and res[0].new == 1 and "429" in res[0].error
+    run_row = last_runs(conn)["p"]
+    assert run_row["ok"] == 1 and "следующий сбор" in run_row["error"]
+
+
 def test_source_error_and_empty_message(conn):
     res = run(conn, {"a": Raising("a", SourceError("boom")), "b": Raising("b", RuntimeError())})
     assert res[0].error == "boom"

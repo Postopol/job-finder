@@ -136,6 +136,7 @@ def _run_one(conn, source: Source, name: str, now_fn, client_factory) -> RunResu
     run_id = db.start_run(conn, name, now_fn())
     fetched = new = skipped = requests = 0
     error: str | None = None
+    note: str | None = None  # stored in runs.error of a successful run
     client = None
     try:
         client = client_factory()
@@ -164,6 +165,9 @@ def _run_one(conn, source: Source, name: str, now_fn, client_factory) -> RunResu
         for key, value in settings.items():
             if key not in before or before[key] != value:
                 db.set_setting(conn, key, value)
+        blocked = getattr(client, "blocked", None)
+        if blocked:  # the source stopped early on 429/403 but returned what it had
+            note = f"сайт ограничил доступ (HTTP {blocked}), остальное — в следующий сбор"
     except Exception as exc:
         error = _error_text(exc)
     finally:
@@ -173,5 +177,6 @@ def _run_one(conn, source: Source, name: str, now_fn, client_factory) -> RunResu
                 client.close()
             except Exception:
                 log.warning("%s: ошибка закрытия клиента", name, exc_info=True)
-    db.finish_run(conn, run_id, error is None, fetched, new, error, now_fn(), skipped=skipped)
-    return RunResult(name, error is None, fetched, new, skipped, requests, error)
+    ok = error is None
+    db.finish_run(conn, run_id, ok, fetched, new, error or note, now_fn(), skipped=skipped)
+    return RunResult(name, ok, fetched, new, skipped, requests, error or note)

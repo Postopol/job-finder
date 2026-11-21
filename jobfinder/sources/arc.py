@@ -7,7 +7,7 @@ import re
 from ..http import PoliteClient, SourceError
 from ..models import Job
 from . import register
-from .base import ParseError, Source, next_data, paged
+from .base import ParseError, Source, describe_new, next_data, paged
 from .geo import utc_from_epoch
 
 log = logging.getLogger(__name__)
@@ -95,10 +95,7 @@ class Arc(Source):
 
     def fetch(self, client: PoliteClient, known: set[str], wants, settings: dict) -> list[Job]:
         jobs = paged(lambda n: parse_payload(client.get(URL).text), self.parse_item, known, 1)
-        for job in jobs:
-            if job.source_id not in known and wants(job):
-                self._describe(client, job)
-        return jobs
+        return describe_new(jobs, known, wants, lambda job: self._describe(client, job), self.name)
 
 
 SOURCE = register(Arc())

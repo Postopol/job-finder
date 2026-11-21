@@ -10,7 +10,7 @@ from selectolax.lexbor import LexborHTMLParser
 from ..http import PoliteClient, SourceError
 from ..models import Job
 from . import register
-from .base import ParseError, Source, paged
+from .base import ParseError, Source, describe_new, paged
 from .geo import utc_from_iso
 
 log = logging.getLogger(__name__)
@@ -196,13 +196,13 @@ class Hh(Source):
             return fresh
 
         jobs = paged(page, self.parse_item, known, int(settings.get("max_pages", 5)))
-        for job in jobs:
-            if job.source_id not in known and wants(job):
-                if token:
-                    self._describe_api(client, job, headers)
-                else:
-                    self._describe_page(client, job)
-        return jobs
+        if token:
+            def describe(job: Job) -> None:
+                self._describe_api(client, job, headers)
+        else:
+            def describe(job: Job) -> None:
+                self._describe_page(client, job)
+        return describe_new(jobs, known, wants, describe, self.name)
 
 
 SOURCE = register(Hh())

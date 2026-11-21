@@ -25,6 +25,7 @@ def test_429_raises_blocked_without_retry():
         c.get("https://x/")
     assert e.value.status == 429 and "429" in str(e.value)
     assert len(calls) == 1
+    assert c.blocked == 429
 
 
 def test_5xx_retries_then_source_error():
@@ -123,3 +124,31 @@ def test_nuxt_data_negative_none_and_cycle():
     assert r["a"] is None and r["b"] is None and r["c"] is r
     with pytest.raises(ParseError):
         base.nuxt_data("<html></html>")
+
+
+def _job(sid):
+    return Job(source="s", source_id=sid, url=f"https://x/{sid}", title=f"Dev {sid}")
+
+
+def test_describe_new_stops_on_block_and_defers_undescribed():
+    jobs = [_job("a"), _job("known"), _job("b"), _job("hidden"), _job("c")]
+    described = []
+
+    def describe(job):
+        if len(described) == 1:
+            raise SourceBlocked(429)
+        described.append(job.source_id)
+        job.description_text = "full"
+
+    out = base.describe_new(jobs, {"known"}, lambda j: j.source_id != "hidden", describe, "s")
+    # "a" described, "known" and filtered-out "hidden" kept, "b"/"c" left for the next run
+    assert [j.source_id for j in out] == ["a", "known", "hidden"]
+    assert described == ["a"]
+
+
+def test_describe_new_describes_only_new_wanted():
+    jobs = [_job("a"), _job("known"), _job("hidden")]
+    seen = []
+    out = base.describe_new(jobs, {"known"}, lambda j: j.source_id != "hidden",
+                            lambda j: seen.append(j.source_id), "s")
+    assert out == jobs and seen == ["a"]

@@ -209,8 +209,13 @@ def test_hh_detail_failure_keeps_job_but_block_propagates(withtoken, caplog):
     def h429(req):
         return listing(req) or httpx.Response(429)
 
-    with pytest.raises(SourceBlocked):
-        hh.SOURCE.fetch(client(h429), set(), lambda j: True, {**settings, "max_pages": 1})
+    c = client(h429)
+    listed = hh.SOURCE.fetch(c, set(), lambda j: False, {**settings, "max_pages": 1})
+    assert hh.SOURCE.fetch(c, set(), lambda j: True, {**settings, "max_pages": 1}) == []
+    assert c.blocked == 429
+    known = {j.source_id for j in listed}  # known jobs need no details and survive the block
+    assert len(hh.SOURCE.fetch(client(h429), known, lambda j: True, {**settings, "max_pages": 1})) \
+        == len(listed)
 
 
 def test_hh_detail_layout_change_warns(caplog):

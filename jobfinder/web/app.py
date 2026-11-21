@@ -417,7 +417,8 @@ def _source_row(name: str, run: sqlite3.Row | None, disabled: set[str],
     elif not run["finished_at"]:
         row["state"], row["tone"] = "сбор не завершён", "idle"
     elif run["ok"]:
-        row["state"], row["tone"] = "работает", "ok"
+        row["state"] = f"работает · {run['error']}" if run["error"] else "работает"
+        row["tone"] = "ok"
     else:
         row["state"], row["tone"] = run["error"] or "ошибка", "error"
     return row

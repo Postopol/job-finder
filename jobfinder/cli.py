@@ -85,7 +85,7 @@ def cmd_collect(args) -> int:
         print("Ничего не запущено: все источники выключены")
         return 0
     for r in results:
-        state = "ok" if r.ok else f"ошибка: {r.error}"
+        state = ("ok" + (f" ({r.error})" if r.error else "")) if r.ok else f"ошибка: {r.error}"
         print(f"{r.source:<14} {state} · получено {r.fetched}, новых {r.new}, "
               f"пропущено {r.skipped}, запросов {r.requests}")
     return 0 if any(r.ok for r in results) else 1
@@ -120,6 +120,8 @@ def cmd_check_sources(args) -> int:
                 client = PoliteClient()
                 jobs = REGISTRY[name].fetch(client, set(), _first_only(), copy.deepcopy(base))
                 line = f"ok · вакансий {len(jobs)}"
+                if getattr(client, "blocked", None):
+                    line += f" · сайт ограничил доступ (HTTP {client.blocked})"
             except Exception as exc:
                 line = f"ошибка: {collector._error_text(exc)}"
             finally:

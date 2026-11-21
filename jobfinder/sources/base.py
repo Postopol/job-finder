@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import json
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 
 from selectolax.lexbor import LexborHTMLParser
 
-from ..http import PoliteClient
+from ..http import PoliteClient, SourceBlocked
 from ..models import Job
+
+log = logging.getLogger(__name__)
 
 
 class ParseError(Exception):
@@ -47,6 +50,26 @@ def paged(fetch_page: Callable[[int], list[dict]], parse: Callable[[dict], Job |
         if hit:
             break
     return out
+
+
+def describe_new(jobs: list[Job], known: set[str], wants: Callable[[Job], bool],
+                 describe: Callable[[Job], None], source: str) -> list[Job]:
+    """Load details for new jobs that pass the filter.
+
+    On 429/403 stop asking the site: keep what was already described, drop the new
+    jobs still waiting for details (the next run finds them again as new).
+    """
+    for i, job in enumerate(jobs):
+        if job.source_id in known or not wants(job):
+            continue
+        try:
+            describe(job)
+        except SourceBlocked as e:
+            rest = [j for j in jobs[i:] if j.source_id in known or not wants(j)]
+            log.warning("%s: %s, описания остальных — в следующий сбор (%d отложено)",
+                        source, e, len(jobs) - i - len(rest))
+            return jobs[:i] + rest
+    return jobs
 
 
 def _script_json(html: str, tag_id: str):

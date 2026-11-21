@@ -7,7 +7,7 @@ from selectolax.lexbor import LexborHTMLParser
 from ..http import PoliteClient, SourceError
 from ..models import Job
 from . import register
-from .base import ParseError, Source, paged
+from .base import ParseError, Source, describe_new, paged
 from .geo import utc_from_iso
 
 log = logging.getLogger(__name__)
@@ -86,10 +86,7 @@ class Habr(Source):
             return parse_payload(client.get(URL, params=params).json())
 
         jobs = paged(page, self.parse_item, known, int(settings.get("max_pages", 5)))
-        for job in jobs:
-            if job.source_id not in known and wants(job):
-                self._describe(client, job)
-        return jobs
+        return describe_new(jobs, known, wants, lambda job: self._describe(client, job), self.name)
 
 
 SOURCE = register(Habr())

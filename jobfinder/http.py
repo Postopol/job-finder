@@ -26,6 +26,7 @@ class PoliteClient:
         self._retries = retries
         self._sleep = sleep
         self.requests = 0
+        self.blocked: int | None = None  # HTTP status of a 429/403 that stopped this client
         self._first = True
         self._client = httpx.Client(
             timeout=timeout, transport=transport, follow_redirects=True,
@@ -47,6 +48,7 @@ class PoliteClient:
                 last = f"{type(e).__name__}: {e}"
                 continue
             if r.status_code in (429, 403):
+                self.blocked = r.status_code
                 raise SourceBlocked(r.status_code)
             if r.status_code >= 500:
                 last = f"HTTP {r.status_code}"

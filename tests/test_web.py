@@ -371,6 +371,14 @@ def test_sources_page_shows_last_error(client, conn):
     assert "пропущено 12" in html
 
 
+def test_sources_page_ok_run_with_block_note(client, conn):
+    now = datetime.now(UTC)
+    run = start_run(conn, "hirify", now)
+    finish_run(conn, run, True, 20, 20, "сайт ограничил доступ (HTTP 429), остальное — в следующий сбор", now)
+    html = client.get("/sources").text
+    assert "работает · сайт ограничил доступ (HTTP 429)" in html
+
+
 def test_sources_page_disabled_state(client, conn):
     set_setting(conn, "disabled_sources", ["wwr"])
     assert "выключен" in client.get("/sources").text

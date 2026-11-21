@@ -6,7 +6,7 @@ import logging
 from ..http import PoliteClient, SourceError
 from ..models import Job
 from . import register
-from .base import ParseError, Source, nuxt_data, paged
+from .base import ParseError, Source, describe_new, nuxt_data, paged
 from .geo import countries_from, utc_from_iso
 
 log = logging.getLogger(__name__)
@@ -113,10 +113,7 @@ class Hirify(Source):
             for job in paged(page, self.parse_item, known, 1):
                 out.setdefault(job.source_id, job)
         jobs = list(out.values())
-        for job in jobs:
-            if job.source_id not in known and wants(job):
-                self._describe(client, job)
-        return jobs
+        return describe_new(jobs, known, wants, lambda job: self._describe(client, job), self.name)
 
 
 SOURCE = register(Hirify())
