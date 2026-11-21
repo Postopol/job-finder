@@ -216,3 +216,71 @@ legend.label { margin-bottom: var(--space-2); }
 .prose pre, .prose code { font-family: ui-monospace, monospace; background: var(--terminal); }
 .prose pre { padding: var(--space-3); overflow-x: auto; }
 .phase2-note { max-width: 720px; padding: var(--space-4) 20px; border: 1px dashed var(--line-strong); color: var(--ink-mute); font-size: 13px; line-height: 18px; }
+
+/* ---------- shared form controls (screens C, D) ---------- */
+.topbar-link { color: var(--on-band-mute); font-size: 13px; }
+.page-title { margin: 0; font-family: var(--font-display); font-size: 28px; line-height: 32px; font-weight: 700; text-transform: uppercase; }
+.field__label { font-size: 13px; color: var(--ink-mute); }
+.settings input[type="number"], .settings input[type="password"], .settings textarea {
+  min-height: 40px; padding: 0 var(--space-3); background: var(--canvas-alt); border: 1px solid var(--line-strong);
+  color: var(--ink); font: inherit; border-radius: 0; width: 100%;
+}
+.settings textarea { padding: 10px var(--space-3); resize: vertical; }
+
+/* ---------- triage (screen C) ---------- */
+.progress { display: flex; flex-direction: column; gap: 6px; min-width: 240px; }
+.progress__text { display: flex; justify-content: space-between; gap: var(--space-4); font-size: 13px; color: var(--on-band-mute); }
+.progress__text .ink { color: var(--on-band); }
+.progress__bar { height: 4px; background: var(--band-raised); }
+.progress__fill { height: 4px; background: var(--cyan); max-width: 100%; }
+.triage { max-width: 860px; margin: 0 auto; padding: var(--space-10) var(--space-6) 48px; display: flex; flex-direction: column; gap: var(--space-6); }
+.triage-card { background: var(--surface); border: 1px solid var(--line); padding: var(--space-10); display: flex; flex-direction: column; gap: var(--space-6); }
+.triage-card__title { margin: 0; font-family: var(--font-display); font-size: 36px; line-height: 40px; font-weight: 700; overflow-wrap: anywhere; }
+.triage-facts { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-10); padding: 20px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.triage-facts__big { font-family: var(--font-display); font-size: 24px; line-height: 28px; font-weight: 700; }
+.triage-facts__v { font-weight: 600; font-size: 17px; line-height: 28px; }
+.triage-card .prose { max-height: 480px; overflow-y: auto; padding-right: var(--space-2); }
+.triage-links { display: flex; flex-wrap: wrap; gap: var(--space-2) 20px; align-items: center; font-size: 14px; }
+.triage-links__original { margin-left: auto; }
+.triage-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+.triage-btn { height: 64px; flex-direction: column; gap: 2px; white-space: normal; text-align: center; }
+.triage-btn__key { font-family: var(--font-sans); font-weight: 400; font-size: 12px; line-height: 16px; color: var(--ink-mute); }
+.qz-btn--primary .triage-btn__key { color: var(--on-primary); opacity: 0.75; }
+.triage-btn[disabled] { opacity: 0.6; cursor: progress; }
+.triage-next { text-align: center; font-size: 13px; color: var(--ink-mute); }
+@media (max-width: 640px) {
+  .triage { padding: var(--space-4); }
+  .triage-card { padding: var(--space-6) var(--space-4); }
+  .triage-card__title { font-size: 26px; line-height: 30px; }
+  .triage-btn { padding: 0 var(--space-2); font-size: 13px; }
+}
+
+/* ---------- sources & settings (screen D) ---------- */
+.sources-page { display: flex; flex-wrap: wrap; gap: var(--space-8); padding: var(--space-8) var(--space-10) var(--space-10); align-items: flex-start; }
+.sources { flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); }
+.sources__head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-2); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); }
+.src-table { width: 100%; min-width: 860px; border-collapse: collapse; font-size: 14px; line-height: 20px; }
+.src-table thead tr { background: var(--canvas-alt); text-align: left; }
+.src-table thead th { padding: var(--space-3) var(--space-4); font-family: var(--font-display); font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--ink-mute); }
+.src-table tbody tr { border-top: 1px solid var(--line); }
+.src-table tbody th, .src-table td { padding: var(--space-3) var(--space-4); text-align: left; vertical-align: top; }
+.src-name { font-weight: 600; }
+.src-code { display: block; font-size: 12px; color: var(--ink-mute); font-weight: 400; }
+.src-table .num { font-family: var(--font-display); font-weight: 700; }
+.src-toggle { width: 18px; height: 18px; accent-color: var(--violet); margin: 0; }
+.state { display: inline-flex; align-items: baseline; gap: var(--space-2); color: var(--ink-mid); max-width: 320px; overflow-wrap: anywhere; }
+.state .dot { flex: none; transform: translateY(-1px); }
+.state--ok .dot { background: var(--lime); }
+.state--error .dot { background: var(--gold); }
+.state--error { color: var(--gold); }
+.state--off .dot, .state--idle .dot { background: var(--line-strong); }
+.state__skipped { display: block; font-size: 12px; color: var(--gold); padding-left: 16px; }
+.settings { flex: 1 1 320px; padding: var(--space-6); background: var(--surface); border: 1px solid var(--line); }
+.settings__form { display: flex; flex-direction: column; gap: 20px; }
+.form-errors { padding: var(--space-3) var(--space-4); border: 1px solid var(--gold); color: var(--gold); font-size: 13px; display: flex; flex-direction: column; gap: var(--space-1); }
+.form-saved { color: var(--lime); font-size: 13px; }
+#collect-status { font-size: 13px; color: var(--cyan); }
+@media (max-width: 640px) {
+  .sources-page { padding: var(--space-4); }
+}

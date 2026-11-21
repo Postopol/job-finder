@@ -1,0 +1,69 @@
+{% if oob %}{% include "_triage_progress.html" %}{% endif %}
+{% if d %}
+{% set job = d.job %}
+<article class="qz-hud triage-card" aria-labelledby="triage-title">
+  <div class="detail__head">
+    <p class="qz-eyebrow small">{{ d.source }}{% if d.ago %} · {{ d.ago }}{% endif %} · {{ d.scope }}</p>
+    <h1 id="triage-title" class="triage-card__title">{{ job.title }}</h1>
+    {% if job.company %}<p class="detail__company">{{ job.company }}</p>{% endif %}
+  </div>
+
+  <div class="triage-facts">
+    <div><div class="facts__k">Зарплата</div><div class="triage-facts__big">{{ d.salary }}</div></div>
+    <div><div class="facts__k">Уровень</div><div class="triage-facts__v">{{ d.level }}</div></div>
+    <div><div class="facts__k">Язык</div><div class="triage-facts__v">{{ d.lang }}</div></div>
+    <div><div class="facts__k">Где можно работать</div><div class="triage-facts__v">{{ d.scope }}</div></div>
+  </div>
+
+  {% if job.stack %}
+  <div class="tags">
+    {% for tag in job.stack %}<span class="tag">{{ tag }}</span>{% endfor %}
+  </div>
+  {% endif %}
+
+  <section class="description">
+    <h2 class="section-title">О вакансии</h2>
+    {% if d.description_html %}
+    <div class="prose" hx-disable>{{ d.description_html|safe }}</div>
+    {% elif job.description_text %}
+    <div class="prose" hx-disable><p>{{ job.description_text|nl2br }}</p></div>
+    {% else %}
+    <p class="mute">Описания нет — смотри оригинал по ссылке.</p>
+    {% endif %}
+  </section>
+
+  <div class="triage-links">
+    <span class="mute">Отзывы о компании:</span>
+    {% for r in d.reviews %}<a href="{{ r.href }}" target="_blank" rel="noopener" title="{{ r.hint }}">{{ r.label }}</a>{% endfor %}
+    {% if d.primary.url %}
+    <a class="triage-links__original" href="{{ d.primary.url }}" target="_blank" rel="noopener">Открыть оригинал на {{ d.primary.label }}</a>
+    {% else %}
+    <span class="triage-links__original mute">{{ d.primary.label }}: ссылки на оригинал нет</span>
+    {% endif %}
+  </div>
+</article>
+
+<form class="triage-actions" action="/triage/{{ job.id }}" method="post"
+      hx-post="/triage/{{ job.id }}" hx-target="#triage" hx-swap="innerHTML show:window:top"
+      hx-disabled-elt="find button">
+  {% for b in buttons %}
+  <button type="submit" name="action" value="{{ b.action }}" data-triage-action="{{ b.action }}"
+          class="qz-btn {{ 'qz-btn--primary' if b.primary else 'qz-btn--outline' }} triage-btn">
+    <span>{{ b.label }}</span><span class="triage-btn__key">клавиша {{ b.key }}</span>
+  </button>
+  {% endfor %}
+</form>
+{% if next %}
+<p class="triage-next">Следующая: {{ next.title }}{% if next.company %} · {{ next.company }}{% endif %} · {{ next.source }}</p>
+{% endif %}
+{% else %}
+<div class="qz-hud triage-card triage-empty">
+  <p class="qz-eyebrow small">Разбор</p>
+  <h1 class="triage-card__title">Новых вакансий нет</h1>
+  <p class="mute">Всё новое разобрано. Свежие вакансии появятся после следующего сбора.</p>
+  <div class="actions">
+    <a class="qz-btn qz-btn--outline" href="/">К списку вакансий</a>
+    <a class="qz-btn qz-btn--outline" href="/?section=mine">Мои вакансии</a>
+  </div>
+</div>
+{% endif %}

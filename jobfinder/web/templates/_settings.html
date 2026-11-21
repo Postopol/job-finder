@@ -1,0 +1,38 @@
+<aside id="settings" class="qz-hud settings" aria-labelledby="settings-title">
+  <form class="settings__form" action="/settings" method="post"
+        hx-post="/settings" hx-target="#settings" hx-swap="outerHTML">
+    <h2 id="settings-title" class="section-title">Настройки сбора</h2>
+    {% if errors %}
+    <div class="form-errors" role="alert">{% for e in errors %}<p>{{ e }}</p>{% endfor %}</div>
+    {% endif %}
+    {% if saved %}<p class="form-saved" role="status">Сохранено</p>{% endif %}
+
+    <div class="field">
+      <label class="field__label" for="interval_hours">Собирать автоматически каждые, часов (1–24)</label>
+      <input id="interval_hours" name="interval_hours" type="number" min="1" max="24" step="1" required value="{{ settings.interval_hours }}">
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="fresh_days">Свежесть ленты по умолчанию, дней (1–30)</label>
+      <input id="fresh_days" name="fresh_days" type="number" min="1" max="30" step="1" required value="{{ settings.fresh_days }}">
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="stopwords">Стоп-слова через запятую: вакансии с ними скрываются</label>
+      <textarea id="stopwords" name="stopwords" rows="3" placeholder="1С, PHP, US citizens only">{{ settings.stopwords }}</textarea>
+      <p class="note">Применяются к вакансиям при следующем сборе.</p>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="hh_token">Токен hh.ru (с dev.hh.ru)</label>
+      <input id="hh_token" name="hh_token" type="password" autocomplete="new-password"
+             placeholder="{{ 'задан — оставь пустым, чтобы не менять' if token_set else 'не задан' }}">
+      {% if token_set %}
+      <label class="check small mid"><input type="checkbox" name="hh_token_clear" value="1"><span>очистить токен</span></label>
+      {% endif %}
+      <p class="note">Без токена hh.ru читается со страницы поиска, это менее надёжно.</p>
+    </div>
+
+    <button type="submit" class="qz-btn qz-btn--primary">Сохранить</button>
+  </form>
+</aside>

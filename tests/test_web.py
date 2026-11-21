@@ -4,11 +4,19 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from fastapi.testclient import TestClient
 
-from jobfinder.db import get_status, set_status, upsert_job
+from jobfinder import collector, scheduler
+from jobfinder.db import (
+    finish_run,
+    get_setting,
+    get_status,
+    set_setting,
+    set_status,
+    start_run,
+    upsert_job,
+)
+from jobfinder.sources import REGISTRY
 from jobfinder.web.app import create_app, review_links
-
 from tests.conftest import mk
-
 
 _ids = itertools.count(1000)
 
@@ -244,3 +252,202 @@ def test_static_served(client):
     assert client.get("/static/htmx.min.js").status_code == 200
     css = client.get("/static/style.css")
     assert css.status_code == 200 and "#a970ff" in css.text
+
+
+# --- triage (screen C) ----------------------------------------------------------
+
+@pytest.fixture
+def seeded2(conn):
+    now = datetime.now(UTC)
+    j1 = seed(conn, source="himalayas", title="Python Developer", company="Northwind Labs",
+              url="https://himalayas.app/jobs/p1", remote_scope="worldwide",
+              salary_min=5000, salary_max=6500, salary_currency="USD", salary_period="month",
+              seniority="senior", stack=["Python", "FastAPI"],
+              description_html="<p>Build APIs</p><script>alert(1)</script>",
+              when=now - timedelta(hours=5))
+    j2 = seed(conn, source="hh", title="Go Developer", company="Квадрат Софт", lang="ru",
+              url="https://hh.ru/vacancy/2", remote_scope="cis", when=now - timedelta(hours=1))
+    return j1, j2
+
+
+def test_triage_shows_new_and_advances(client, conn, seeded2):
+    j1, j2 = seeded2
+    first = client.get("/triage").text
+    assert "Python Developer" in first  # oldest first
+    assert "$5\u00a0000–6\u00a0500 / мес" in first and "Senior" in first and "весь мир" in first
+    assert "FastAPI" in first and "<p>Build APIs</p>" in first and "<script>alert(1)" not in first
+    assert 'hx-disable' in first
+    assert 'href="https://himalayas.app/jobs/p1"' in first and "Northwind%20Labs" in first
+    assert "0 из 2" in first
+    assert "Go Developer" in first  # «следующая» hint
+    for label in ("Не подходит", "Позже", "Интересно", "keys.js"):
+        assert label in first
+    r = client.post(f"/triage/{j1}", data={"action": "interesting"}, headers={"HX-Request": "true"})
+    assert r.status_code == 200
+    assert get_status(conn, j1) == "interesting" and "Go Developer" in r.text
+    assert "1 из 2" in r.text
+    r = client.post(f"/triage/{j2}", data={"action": "reject"}, headers={"HX-Request": "true"})
+    assert get_status(conn, j2) == "rejected"
+    assert "Новых вакансий нет" in r.text and "2 из 2" in r.text
+
+
+def test_triage_later_is_seen(client, conn, seeded2):
+    j1, _ = seeded2
+    client.post(f"/triage/{j1}", data={"action": "later"})
+    assert get_status(conn, j1) == "seen"
+    assert "Python Developer" not in client.get("/triage").text.split("Следующая")[0]
+
+
+def test_triage_skips_hidden_archived_and_decided(client, conn):
+    seed(conn, title="Hybrid Dev", company="H", hidden_reason="hybrid")
+    done = seed(conn, title="Done Dev", company="D")
+    set_status(conn, done, "applied", datetime.now(UTC))
+    old = seed(conn, title="Archived Dev", company="A")
+    conn.execute("UPDATE jobs SET archived_at=? WHERE id=?", (datetime.now(UTC).isoformat(), old))
+    conn.commit()
+    assert "Новых вакансий нет" in client.get("/triage").text
+
+
+def test_triage_empty_state(client, conn):
+    assert "Новых вакансий нет" in client.get("/triage").text
+
+
+def test_triage_post_errors(client, conn, seeded2):
+    j1, _ = seeded2
+    assert client.post("/triage/999999", data={"action": "later"}).status_code == 404
+    assert client.post(f"/triage/{j1}", data={"action": "applied"}).status_code == 422
+    assert get_status(conn, j1) == "new"
+
+
+def test_triage_without_htmx_redirects(client, conn, seeded2):
+    j1, _ = seeded2
+    r = client.post(f"/triage/{j1}", data={"action": "later"}, follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/triage"
+
+
+def test_keys_js_served(client):
+    js = client.get("/static/keys.js")
+    assert js.status_code == 200 and "ArrowLeft" in js.text and "ArrowDown" in js.text
+
+
+# --- sources & settings (screen D) ------------------------------------------------
+
+def test_sources_page_lists_registry(client):
+    html = client.get("/sources").text
+    assert all(n in html for n in REGISTRY)
+    assert "Открытый API" in html and "Обновить все" in html and "Настройки сбора" in html
+
+
+def test_sources_page_shows_last_error(client, conn):
+    now = datetime.now(UTC)
+    run = start_run(conn, "remoteok", now)
+    finish_run(conn, run, False, 0, 0, "HTTP 429", now)
+    run = start_run(conn, "jobicy", now)
+    finish_run(conn, run, True, 40, 7, None, now, skipped=12)
+    html = client.get("/sources").text
+    assert "HTTP 429" in html
+    assert "пропущено 12" in html
+
+
+def test_sources_page_disabled_state(client, conn):
+    set_setting(conn, "disabled_sources", ["wwr"])
+    assert "выключен" in client.get("/sources").text
+
+
+def test_toggle_source(client, conn):
+    r = client.post("/sources/remoteok/toggle")
+    assert r.status_code == 200 and "выключен" in r.text
+    assert "remoteok" in get_setting(conn, "disabled_sources")
+    client.post("/sources/remoteok/toggle")
+    assert "remoteok" not in get_setting(conn, "disabled_sources")
+    assert client.post("/sources/nope/toggle").status_code == 404
+
+
+def test_settings_validation(client, conn):
+    assert client.post("/settings", data={"interval_hours": "0"}).status_code == 422
+    r = client.post("/settings", data={"interval_hours": "25"})
+    assert r.status_code == 422 and "от 1 до 24" in r.text
+    assert client.post("/settings", data={"interval_hours": "abc"}).status_code == 422
+    assert client.post("/settings", data={"fresh_days": "31"}).status_code == 422
+    assert client.post("/settings", data={"fresh_days": "0"}).status_code == 422
+    assert get_setting(conn, "interval_hours") == 6 and get_setting(conn, "fresh_days") == 3
+
+
+def test_settings_saved(client, conn):
+    r = client.post("/settings", data={"interval_hours": "3", "fresh_days": "7",
+                                       "stopwords": " 1С, PHP ,, офис\n", "hh_token": ""})
+    assert r.status_code == 200
+    assert get_setting(conn, "interval_hours") == 3 and get_setting(conn, "fresh_days") == 7
+    assert get_setting(conn, "stopwords") == ["1С", "PHP", "офис"]
+    assert get_setting(conn, "hh_token") == ""
+
+
+def test_hh_token_kept_cleared_and_not_echoed(client, conn):
+    client.post("/settings", data={"hh_token": "SECRET-TOKEN-123"})
+    assert get_setting(conn, "hh_token") == "SECRET-TOKEN-123"
+    page = client.get("/sources").text
+    assert "SECRET-TOKEN-123" not in page and "задан" in page
+    r = client.post("/settings", data={"hh_token": "", "interval_hours": "6"})
+    assert "SECRET-TOKEN-123" not in r.text
+    assert get_setting(conn, "hh_token") == "SECRET-TOKEN-123"  # empty keeps
+    client.post("/settings", data={"hh_token": "", "hh_token_clear": "1"})
+    assert get_setting(conn, "hh_token") == ""
+
+
+class FakeSched:
+    class Job:
+        next_run_time = datetime.now(UTC) + timedelta(hours=2)
+
+    def get_job(self, job_id):
+        return self.Job() if job_id == "collect" else None
+
+    def shutdown(self, wait=True):
+        pass
+
+
+def test_settings_reschedules_running_scheduler(client, conn, monkeypatch):
+    calls = []
+    monkeypatch.setattr(scheduler, "reschedule", lambda s, h: calls.append(h))
+    client.app.state.scheduler = FakeSched()
+    client.post("/settings", data={"interval_hours": "6"})
+    assert calls == []  # unchanged
+    client.post("/settings", data={"interval_hours": "12"})
+    assert calls == [12]
+
+
+def test_collect_starts_background(client, monkeypatch):
+    import threading
+    started = threading.Event()
+    monkeypatch.setattr(scheduler, "run_collect", lambda path: started.set())
+    r = client.post("/collect")
+    assert r.status_code == 200 and "Сбор запущен" in r.text
+    assert started.wait(2)
+
+
+def test_collect_already_running(client, monkeypatch):
+    monkeypatch.setattr(scheduler, "run_collect", lambda path: pytest.fail("must not start"))
+    assert collector._lock.acquire(blocking=False)
+    try:
+        assert "Сбор уже идёт" in client.post("/collect").text
+    finally:
+        collector._lock.release()
+
+
+def test_new_posts_reject_foreign_origin(client, conn, seeded2, monkeypatch):
+    monkeypatch.setattr(scheduler, "run_collect", lambda path: None)
+    evil = {"Origin": "https://evil.example"}
+    j1, _ = seeded2
+    assert client.post(f"/triage/{j1}", data={"action": "later"}, headers=evil).status_code == 403
+    assert client.post("/sources/remoteok/toggle", headers=evil).status_code == 403
+    assert client.post("/settings", data={"interval_hours": "3"}, headers=evil).status_code == 403
+    assert client.post("/collect", headers=evil).status_code == 403
+    assert get_status(conn, j1) == "new" and get_setting(conn, "interval_hours") == 6
+    assert get_setting(conn, "disabled_sources") == []
+
+
+def test_sources_shows_schedule_when_running(client, conn):
+    run = start_run(conn, "jobicy", datetime.now(UTC))
+    finish_run(conn, run, True, 1, 1, None, datetime.now(UTC))
+    client.app.state.scheduler = FakeSched()
+    html = client.get("/sources").text
+    assert "Последний сбор" in html and "следующий в" in html

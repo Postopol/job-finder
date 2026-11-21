@@ -43,6 +43,11 @@ def _error_text(exc: Exception) -> str:
     return str(exc) or type(exc).__name__
 
 
+def is_running() -> bool:
+    """True while a collect() holds the lock in this process."""
+    return _lock.locked()
+
+
 def collect(conn, sources: dict[str, Source] | None = None,
             now_fn: Callable[[], datetime] = lambda: datetime.now(UTC),
             client_factory=PoliteClient, only: str | None = None) -> list[RunResult]:

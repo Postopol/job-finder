@@ -1,0 +1,13 @@
+<tr id="src-{{ s.name }}">
+  <th scope="row"><span class="src-name">{{ s.label }}</span> <span class="src-code">{{ s.name }}</span></th>
+  <td class="mid">{{ s.lang }}</td>
+  <td class="mid">{{ s.method }}</td>
+  <td class="mid">{{ s.last }}</td>
+  <td class="num">{{ s.new }}</td>
+  <td>
+    <span class="state state--{{ s.tone }}"><span class="dot" aria-hidden="true"></span><span>{{ s.state }}</span></span>
+    {% if s.skipped %}<span class="state__skipped">пропущено {{ s.skipped }}</span>{% endif %}
+  </td>
+  <td><input type="checkbox" class="src-toggle" {% if s.on %}checked{% endif %} aria-label="Включить {{ s.label }}"
+             hx-post="/sources/{{ s.name }}/toggle" hx-target="closest tr" hx-swap="outerHTML"></td>
+</tr>

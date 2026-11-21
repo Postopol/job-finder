@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Job Finder — источники{% endblock %}
+{% block header_meta %}
+<span id="collect-status" role="status"></span>
+<button type="button" class="qz-btn qz-btn--primary" hx-post="/collect" hx-target="#collect-status" hx-swap="innerHTML">Обновить все <span class="qz-arrow" aria-hidden="true"></span></button>
+{% endblock %}
+{% block content %}
+<div class="sources-page">
+  <section class="sources" aria-labelledby="sources-title">
+    <div class="sources__head">
+      <h1 id="sources-title" class="page-title">Источники</h1>
+      <p class="small mute">{{ schedule }}</p>
+    </div>
+    <div class="table-wrap">
+      <table class="src-table">
+        <thead>
+          <tr>
+            <th scope="col">Сайт</th>
+            <th scope="col">Язык</th>
+            <th scope="col">Как берём</th>
+            <th scope="col">Последний запуск</th>
+            <th scope="col">Новых</th>
+            <th scope="col">Состояние</th>
+            <th scope="col">Вкл.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in rows %}{% include "_source_row.html" %}{% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="note">«Новых» и состояние — по последнему запуску источника. Выключенные источники не участвуют в сборе по расписанию и по кнопке «Обновить все».</p>
+  </section>
+  {% include "_settings.html" %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  // Validation errors come back as 422 with the re-rendered form: swap them in.
+  document.addEventListener("htmx:beforeSwap", function (e) {
+    if (e.detail.xhr.status === 422) { e.detail.shouldSwap = true; e.detail.isError = false; }
+  });
+</script>
+{% endblock %}

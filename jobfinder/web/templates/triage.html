@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Job Finder — разбор{% endblock %}
+{% block header_meta %}
+{% include "_triage_progress.html" %}
+<a href="/" class="topbar-link">Перейти к списку</a>
+{% endblock %}
+{% block content %}
+<div id="triage" class="triage" aria-live="polite">
+  {% include "_triage_card.html" %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', path='keys.js') }}" defer></script>
+{% endblock %}
