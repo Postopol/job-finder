@@ -19,8 +19,9 @@
 
     <div class="field">
       <label class="field__label" for="stopwords">Стоп-слова через запятую: вакансии с ними скрываются</label>
+      <input type="hidden" name="stopwords_sent" value="1">
       <textarea id="stopwords" name="stopwords" rows="3" placeholder="1С, PHP, US citizens only">{{ settings.stopwords }}</textarea>
-      <p class="note">Применяются к вакансиям при следующем сборе.</p>
+      <p class="note">Применяются сразу, в том числе к уже собранным вакансиям. Если убрать слово, его вакансии вернутся в ленту.</p>
     </div>
 
     <div class="field">

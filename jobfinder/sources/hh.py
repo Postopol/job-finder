@@ -95,6 +95,7 @@ class Hh(Source):
     name = "hh"
     lang = "ru"
     full_listing = False
+    detail_pages = True
     method = "API или страница поиска"  # API with settings hh_token, otherwise the search page
 
     def parse_item(self, item: dict) -> Job | None:

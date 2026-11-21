@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from jobfinder import collector, scheduler
 from jobfinder.db import (
     finish_run,
+    get_job,
     get_setting,
     get_status,
     set_setting,
@@ -29,7 +30,7 @@ def seed(conn, hidden_reason=None, when=None, **kw) -> int:
 
 @pytest.fixture
 def client(tmp_path, conn):
-    with TestClient(create_app(tmp_path / "j.db", start_scheduler=False)) as c:
+    with TestClient(create_app(tmp_path / "j.db", start_scheduler=False, extra_hosts=("testserver",))) as c:
         yield c
 
 
@@ -493,3 +494,38 @@ def test_sources_shows_schedule_when_running(client, conn):
     client.app.state.scheduler = FakeSched()
     html = client.get("/sources").text
     assert "Последний сбор" in html and "следующий в" in html
+
+
+def test_saving_stopword_hides_and_unhides_stored_jobs_at_once(client, conn):
+    jid = seed(conn, title="Программист 1С", company="O")
+    seed(conn, title="Go Dev", company="G")
+    assert "Программист 1С" in client.get("/list").text
+    assert client.post("/settings", data={"stopwords": "1С"}).status_code == 200
+    assert get_job(conn, jid)["hidden_reason"] == "stopword:1с"
+    feed = client.get("/list").text
+    assert "Программист 1С" not in feed and "Go Dev" in feed
+    assert "Программист 1С" in client.get("/list", params={"section": "hidden"}).text
+    # the form always sends the marker: an emptied textarea clears the list, the job comes back
+    client.post("/settings", data={"stopwords": "", "stopwords_sent": "1"})
+    assert get_setting(conn, "stopwords") == []
+    assert get_job(conn, jid)["hidden_reason"] is None
+    assert "Программист 1С" in client.get("/list").text
+
+
+def test_stopword_note_says_immediate(client):
+    page = client.get("/sources").text
+    assert "при следующем сборе" not in page and "Применяются сразу" in page
+
+
+def test_testserver_not_a_local_host_in_production(tmp_path, conn, seeded):
+    with TestClient(create_app(tmp_path / "j.db", start_scheduler=False)) as prod:
+        r = prod.post(f"/jobs/{seeded}/status", data={"status": "applied"},
+                      headers={"Origin": "http://testserver"})
+    assert r.status_code == 403 and get_status(conn, seeded) == "new"
+
+
+def test_failing_source_state_is_red(client):
+    import re
+    css = client.get("/static/style.css").text
+    rules = dict(re.findall(r"(\.state--error(?: \.dot)?) \{([^}]*)\}", css))
+    assert "var(--garnet)" in rules[".state--error"] and "var(--garnet)" in rules[".state--error .dot"]

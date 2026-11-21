@@ -59,6 +59,7 @@ class Arc(Source):
     name = "arc"
     lang = "en"
     full_listing = False
+    detail_pages = True
     method = "JSON сайта"
 
     def parse_item(self, item: dict) -> Job | None:

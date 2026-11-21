@@ -20,6 +20,26 @@ _CURRENCIES = {"rur": "RUB", "rub": "RUB", "usd": "USD", "eur": "EUR", "kzt": "K
 _LEVELS = {"intern": "junior", "junior": "junior", "middle": "middle", "senior": "senior", "lead": "lead"}
 
 
+# Habr Career is not IT-only. Specialization groups (the path of a division's href,
+# /vacancies/spec/<group>/<spec>) and division titles that are not IT work.
+NON_IT_GROUPS = {"sales", "marketing", "hr", "office", "accounting", "finance", "finances"}
+NON_IT_DIVISIONS = {"менеджер по продажам", "маркетолог", "специалист по подбору персонала",
+                    "рекрутер", "бухгалтер", "офис-менеджер", "менеджер по работе с клиентами"}
+
+
+def _division_non_it(d: dict) -> bool:
+    parts = str(d.get("href") or "").strip("/").split("/")
+    group = parts[2] if len(parts) >= 4 and parts[:2] == ["vacancies", "spec"] else ""
+    return group in NON_IT_GROUPS or str(d.get("title") or "").strip().lower() in NON_IT_DIVISIONS
+
+
+def is_non_it(item: dict) -> bool:
+    """True when every division of the vacancy is a non-IT one (sales, marketing, HR, ...)."""
+    divisions = [d for d in item.get("divisions") or [] if isinstance(d, dict)] \
+        if isinstance(item.get("divisions"), list) else []
+    return bool(divisions) and all(_division_non_it(d) for d in divisions)
+
+
 def parse_payload(payload) -> list[dict]:
     node = payload.get(LIST_KEY) if isinstance(payload, dict) else None
     if not isinstance(node, list):
@@ -35,12 +55,13 @@ class Habr(Source):
     name = "habr"
     lang = "ru"
     full_listing = False
+    detail_pages = True
     method = "JSON сайта"
 
     def parse_item(self, item: dict) -> Job | None:
         href, title = item.get("href"), item.get("title")
         if not href or not title or item.get("id") is None or item.get("archived") \
-                or item.get("remoteWork") is not True:
+                or item.get("remoteWork") is not True or is_non_it(item):
             return None
         sal = item.get("salary") if isinstance(item.get("salary"), dict) else {}
         lo, hi = _amount(sal.get("from")), _amount(sal.get("to"))

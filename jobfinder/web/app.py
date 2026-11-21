@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup, escape
 
-from .. import collector, db, scheduler
+from .. import archive, collector, db, scheduler
 from ..models import STATUSES
 from ..search import SECTIONS, SearchParams, count_sections, search_jobs
 from ..sources import REGISTRY
@@ -51,7 +51,7 @@ PERIODS = {"month": " / мес", "year": " / год", "hour": " / час"}
 
 # --- security helpers ---------------------------------------------------------
 
-LOCAL_HOSTS = {"127.0.0.1", "localhost", "testserver"}
+LOCAL_HOSTS = frozenset({"127.0.0.1", "localhost"})
 _DEFAULT_PORTS = {"http": 80, "https": 443}
 
 
@@ -61,7 +61,7 @@ def safe_url(url: str | None) -> str | None:
     return url if urlsplit(url).scheme.lower() in ("http", "https") else None
 
 
-def origin_allowed(request: Request, origin: str) -> bool:
+def origin_allowed(request: Request, origin: str, hosts=LOCAL_HOSTS) -> bool:
     """Origin/Referer must be this local app: a local host name on the port we serve.
 
     The Host header is not trusted for the name (DNS rebinding sends Host: evil.example).
@@ -73,8 +73,8 @@ def origin_allowed(request: Request, origin: str) -> bool:
         h_port = h.port or _DEFAULT_PORTS.get(request.url.scheme)
     except ValueError:  # malformed port
         return False
-    return (o.scheme in _DEFAULT_PORTS and o.hostname in LOCAL_HOSTS
-            and h.hostname in LOCAL_HOSTS and o_port == h_port)
+    return (o.scheme in _DEFAULT_PORTS and o.hostname in hosts
+            and h.hostname in hosts and o_port == h_port)
 
 
 def require_same_origin(request: Request) -> None:
@@ -83,7 +83,8 @@ def require_same_origin(request: Request) -> None:
     Requests without Origin and Referer (curl, CLI) are allowed.
     """
     origin = request.headers.get("origin") or request.headers.get("referer")
-    if origin is not None and not origin_allowed(request, origin):
+    hosts = getattr(request.app.state, "local_hosts", LOCAL_HOSTS)
+    if origin is not None and not origin_allowed(request, origin, hosts):
         raise HTTPException(403, "Запрос с чужого сайта отклонён")
 
 
@@ -489,7 +490,9 @@ def _settings_context(conn: sqlite3.Connection, form: dict | None = None,
 
 # --- app ---------------------------------------------------------------------
 
-def create_app(db_path: Path | str, start_scheduler: bool = True) -> FastAPI:
+def create_app(db_path: Path | str, start_scheduler: bool = True,
+               extra_hosts: tuple[str, ...] = ()) -> FastAPI:
+    """`extra_hosts`: more host names accepted as local by the CSRF check (tests only)."""
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         if start_scheduler:
@@ -505,6 +508,7 @@ def create_app(db_path: Path | str, start_scheduler: bool = True) -> FastAPI:
                   lifespan=lifespan)
     app.state.db_path = Path(db_path)
     app.state.scheduler = None
+    app.state.local_hosts = LOCAL_HOSTS | set(extra_hosts)
     app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
     templates = Jinja2Templates(directory=HERE / "templates")
     templates.env.filters["nl2br"] = nl2br
@@ -622,8 +626,11 @@ def create_app(db_path: Path | str, start_scheduler: bool = True) -> FastAPI:
               dependencies=[Depends(require_same_origin)])
     def save_settings(request: Request, interval_hours: str | None = Form(None),
                       fresh_days: str | None = Form(None), stopwords: str | None = Form(None),
+                      stopwords_sent: str | None = Form(None),
                       hh_token: str | None = Form(None), hh_token_clear: str | None = Form(None),
                       conn: sqlite3.Connection = Depends(get_conn)):
+        if stopwords is None and stopwords_sent:  # FastAPI turns an empty field into None
+            stopwords = ""
         form = {"interval_hours": interval_hours, "fresh_days": fresh_days,
                 "stopwords": stopwords, "hh_token": hh_token, "hh_token_clear": hh_token_clear}
         changes, errors = parse_settings_form(form)
@@ -637,6 +644,8 @@ def create_app(db_path: Path | str, start_scheduler: bool = True) -> FastAPI:
         old_hours = db.get_setting(conn, "interval_hours")
         for key, value in changes.items():
             db.set_setting(conn, key, value)
+        if "stopwords" in changes:  # hide or un-hide jobs already in the base right away
+            archive.reapply_stopwords(conn, changes["stopwords"])
         hours = changes.get("interval_hours", old_hours)
         if hours != old_hours and app.state.scheduler is not None:
             scheduler.reschedule(app.state.scheduler, hours)

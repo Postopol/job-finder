@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 from . import db
 from .collector import _prepare
-from .filters import FilterConfig
+from .filters import FilterConfig, stopword_reason
 from .models import Job
 from .sources import REGISTRY
 from .sources.base import Source
@@ -61,8 +61,7 @@ def purge_raw(conn, now: datetime) -> int:
     return cur.rowcount
 
 
-_SCALARS = ("company", "salary_raw", "salary_min", "salary_max", "salary_currency",
-            "salary_period", "location_raw", "work_format", "seniority", "published_at")
+_SCALARS = ("company", "location_raw", "work_format", "seniority", "published_at")
 _LISTS = ("countries", "timezones", "stack")
 
 
@@ -76,19 +75,32 @@ def _merge(jobs: list[Job]) -> Job:
         for n in _LISTS:
             if not getattr(merged, n):
                 setattr(merged, n, getattr(other, n))
+        db.merge_salary(merged, vars(other))
         if len(other.description_html or "") > len(merged.description_html or ""):
             merged.description_html = other.description_html
             merged.description_text = other.description_text
     return merged
 
 
-def _keep_description(old: dict, merged: Job) -> None:
-    """Detail pages are not saved in raw: when the listing gave no description, keep the
-    stored one (it came from a detail page). A real reparsed description, even a shorter
-    one, replaces it."""
-    if not (merged.description_html or merged.description_text) and old["description_html"]:
-        merged.description_html = old["description_html"]
+def _keep_description(old: dict, merged: Job, detail_source: bool) -> None:
+    """Raw keeps only listing items, so a description loaded from a detail page cannot be
+    re-parsed. Keep the stored description when the listing gives none, or when the stored
+    one came from a detail page and the reparsed one is only a listing preview (Hirify
+    tldr, hh snippet). Otherwise the reparsed description replaces it, even a shorter one.
+
+    `detail_source`: one of the job's sources loads detail pages; used to guess for rows
+    stored before descriptions were marked (the longer one is taken as the detail text)."""
+    old_html = old["description_html"] or ""
+    if not old_html:
+        return
+    flag = old.get("description_detail")
+    from_detail = bool(flag) if flag is not None else (
+        detail_source and len(old_html) > len(merged.description_html or ""))
+    listing_empty = not (merged.description_html or merged.description_text)
+    if listing_empty or (from_detail and not merged.description_detail):
+        merged.description_html = old_html
         merged.description_text = old["description_text"]
+        merged.description_detail = True if from_detail else flag
 
 
 def _keep_existing(old: dict, merged: Job) -> None:
@@ -100,6 +112,28 @@ def _keep_existing(old: dict, merged: Job) -> None:
     for n in _LISTS:
         if not getattr(merged, n):
             setattr(merged, n, old[n])
+    db.merge_salary(merged, old)
+
+
+def reapply_stopwords(conn, stopwords: list[str] | None = None) -> int:
+    """Re-check the stopword hide of every non-archived job from its stored text.
+
+    Only rows hidden by a stopword or not hidden at all are touched, so other reasons stay.
+    Returns the number of rows whose reason changed."""
+    if stopwords is None:
+        stopwords = db.get_setting(conn, "stopwords") or []
+    rows = conn.execute(
+        "SELECT id, title, description_text, hidden_reason FROM jobs WHERE archived_at IS NULL "
+        "AND (hidden_reason IS NULL OR hidden_reason LIKE 'stopword:%')").fetchall()
+    changes = []
+    for r in rows:
+        reason = stopword_reason(r["title"], r["description_text"], stopwords)
+        if reason != r["hidden_reason"]:
+            changes.append((reason, r["id"]))
+    if changes:
+        with db._tx(conn):
+            conn.executemany("UPDATE jobs SET hidden_reason=? WHERE id=?", changes)
+    return len(changes)
 
 
 def reparse(conn, source: str | None = None, sources: dict[str, Source] | None = None) -> int:
@@ -132,14 +166,17 @@ def reparse(conn, source: str | None = None, sources: dict[str, Source] | None =
                 continue
             merged = _merge(parsed)
             old = db.get_job(conn, job_id)
-            total = conn.execute("SELECT COUNT(*) FROM postings WHERE job_id=?",
-                                 (job_id,)).fetchone()[0]
-            if len(parsed) < total:
+            job_sources = [p[0] for p in conn.execute(
+                "SELECT source FROM postings WHERE job_id=?", (job_id,))]
+            if len(parsed) < len(job_sources):
                 _keep_existing(old, merged)
-            _keep_description(old, merged)
+            detail_source = any(getattr(sources.get(n), "detail_pages", False) for n in job_sources)
+            _keep_description(old, merged, detail_source)
             # filters run on the full description, as in collect
             db.update_job_fields(conn, job_id, merged, _prepare(merged, cfg))
             count += 1
         except Exception:
             log.warning("reparse: не удалось обработать вакансию %s", job_id, exc_info=True)
+    # jobs without raw (or with a parser error) still get the current stopwords
+    reapply_stopwords(conn, cfg.stopwords)
     return count

@@ -61,6 +61,7 @@ class Hirify(Source):
     name = "hirify"
     lang = "ru"
     full_listing = False
+    detail_pages = True
     method = "JSON сайта"
 
     def parse_item(self, item: dict) -> Job | None:

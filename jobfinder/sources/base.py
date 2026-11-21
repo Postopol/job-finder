@@ -23,6 +23,7 @@ class Source(ABC):
     lang: str
     full_listing: bool
     method: str  # «Открытый API», «RSS», «JSON сайта», «Страница сайта»
+    detail_pages: bool = False  # descriptions of new jobs are loaded from detail pages
 
     @abstractmethod
     def parse_item(self, item: dict) -> Job | None: ...

@@ -255,7 +255,22 @@ def test_habr_fetch_params_and_detail():
     assert [s[0] for s in seen[2:]] == ["/vacancies/1000169259"]
     job = next(j for j in jobs if j.source_id == "1000169259")
     assert "Top Selection" in job.description_html and "<script" not in job.description_html
-    assert len(jobs) == len(habr.parse_payload(payload(habr)))
+    items = habr.parse_payload(payload(habr))
+    assert len(jobs) == sum(habr.SOURCE.parse_item(i) is not None for i in items) == len(items) - 2
+
+
+def test_habr_non_it_divisions_dropped():
+    by_title = {i["title"]: i for i in habr.parse_payload(payload(habr))}
+    bd = by_title["Менеджер по развитию бизнеса (Сибирь)"]  # division «Менеджер по продажам»
+    assert habr.SOURCE.parse_item(bd) is None
+    assert habr.SOURCE.parse_item(by_title["Ресерчер"]) is None  # HR division
+    assert habr.SOURCE.parse_item(by_title["Middle Golang Разработчик"]) is not None
+    marketing = {**by_title["Middle Golang Разработчик"],
+                 "divisions": [{"title": "Маркетолог", "href": "/vacancies/spec/marketing/marketer"}]}
+    assert habr.SOURCE.parse_item(marketing) is None
+    mixed = {**marketing, "divisions": [*marketing["divisions"], *by_title["Middle Golang Разработчик"]["divisions"]]}
+    assert habr.SOURCE.parse_item(mixed) is not None  # one IT division is enough
+    assert habr.SOURCE.parse_item({**bd, "divisions": None}) is not None
 
 
 def test_habr_known_job_stops_paging_and_skips_detail():
