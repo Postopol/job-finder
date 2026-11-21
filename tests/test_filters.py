@@ -74,3 +74,20 @@ def test_hidden_reason_non_it_before_restricted_and_stopwords():
     assert hidden_reason(mk(title="Staff Accountant", remote_scope="restricted"), cfg) == "non_it"
     assert hidden_reason(mk(title="Staff Accountant", work_format="hybrid"), cfg) == "hybrid"
     assert hidden_reason(mk(title="Backend Engineer"), FilterConfig()) is None
+
+
+@pytest.mark.parametrize("title", [
+    "Medical Software Engineer", "Finance Software Engineer", "Legal Tech Backend Engineer",
+    "Marketing Tech Engineer", "HR Tech Full Stack Developer", "Clinical Data Engineer",
+    "AI Tutor - Software Engineering", "IT Operations Manager",
+    "Site Reliability Operations Manager", "Accounting Software Engineer",
+    "Talent Platform Engineer", "Support Engineer (Linux kernel)"])
+def test_domain_word_with_it_noun_stays_it(title):
+    assert is_non_it_title(title) is False
+
+
+@pytest.mark.parametrize("title", [
+    "Senior Sales Engineer", "Customer Success Engineer", "PreSales Solutions Engineer",
+    "Staff Accountant", "Operations Manager", "Medical Billing Specialist"])
+def test_role_words_always_non_it(title):
+    assert is_non_it_title(title) is True

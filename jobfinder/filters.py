@@ -78,23 +78,41 @@ def hidden_reason(job: Job, cfg: FilterConfig) -> str | None:
     return None
 
 
-NON_IT_TITLE_WORDS = [
+# Role phrases: non-IT whatever else the title says ("Sales Engineer", "Customer Success Engineer").
+NON_IT_ROLE_WORDS = [
     "sales", "account executive", "account manager", "account director",
-    "business development", "marketing", "communications", "customer success",
-    "customer support", "customer service", "support engineer", "support specialist",
-    "technical support", "presales", "pre-sales", "solutions engineer",
-    "solutions consultant", "recruiter", "talent", "hr", "people partner", "accountant",
-    "accounting", "finance", "legal", "counsel", "clinical", "nurse", "therapist",
-    "medical", "physician", "teacher", "tutor", "art director", "creative director",
-    "copywriter", "content writer", "office manager", "executive assistant",
-    "operations manager", "proposal", "community manager", "media specialist",
-    "internal controls", "sox", "compensation", "sales development",
+    "business development", "sales development", "presales", "pre-sales",
+    "customer success", "customer support", "customer service", "technical support",
+    "support specialist", "recruiter", "art director", "creative director", "copywriter",
+    "content writer", "community manager", "proposal", "executive assistant",
+    "office manager", "nurse", "therapist", "physician", "teacher", "accountant",
 ]
-_NON_IT_RE = re.compile(
-    r"(?<!\w)(?:" + "|".join(re.escape(w) for w in NON_IT_TITLE_WORDS) + r")(?!\w)",
-    re.IGNORECASE)
+# Domain words: non-IT only when the title has no strong IT noun
+# ("Medical Software Engineer" stays, "Medical Billing Specialist" goes).
+NON_IT_DOMAIN_WORDS = [
+    "marketing", "communications", "finance", "accounting", "legal", "counsel", "hr",
+    "talent", "people partner", "clinical", "medical", "tutor", "operations manager",
+    "compensation", "internal controls", "sox", "media specialist", "support engineer",
+    "solutions engineer", "solutions consultant",
+]
+
+
+def _words_re(words: list[str]) -> re.Pattern:
+    return re.compile(r"(?<!\w)(?:" + "|".join(re.escape(w) for w in words) + r")(?!\w)",
+                      re.IGNORECASE)
+
+
+_ROLE_RE = _words_re(NON_IT_ROLE_WORDS)
+_DOMAIN_RE = _words_re(NON_IT_DOMAIN_WORDS)
+_STRONG_IT_RE = re.compile(
+    r"(?<!\w)(?:software|developer|programmer|devops|sre|site reliability|back-?end|"
+    r"front-?end|full[ -]?stack|data (?:engineer|scientist)|machine learning|ml|platform|"
+    r"infrastructure|cloud|security|qa|it|tech|linux|kernel)(?!\w)", re.IGNORECASE)
 
 
 def is_non_it_title(title: str) -> bool:
     """True when the title names a clearly non-IT role (sales, support, HR, ...)."""
-    return _NON_IT_RE.search(title or "") is not None
+    title = title or ""
+    if _ROLE_RE.search(title):
+        return True
+    return _DOMAIN_RE.search(title) is not None and _STRONG_IT_RE.search(title) is None
