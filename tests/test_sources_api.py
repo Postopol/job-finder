@@ -62,6 +62,13 @@ def test_himalayas_worldwide():
     ).countries == ["DE", "KZ"]
 
 
+def test_himalayas_unknown_country_not_narrowed():
+    item = {**load("himalayas.json")["jobs"][0], "locationRestrictions": ["Germany", "Narnia"]}
+    job = himalayas.SOURCE.parse_item(item)
+    assert job.remote_scope == "unknown" and job.countries == []
+    assert job.location_raw == "Germany, Narnia"
+
+
 def test_himalayas_fetch():
     seen = []
 
@@ -106,11 +113,24 @@ def test_remoteok_legal_skipped():
     assert remoteok.SOURCE.parse_item(free).salary_min is None
 
 
+def test_remoteok_it_filter():
+    items = remoteok.parse_payload(load("remoteok.json"))
+    base = items[0]
+    sales = {**base, "position": "Account Executive", "tags": ["sales", "customer support"]}
+    assert remoteok.SOURCE.parse_item(sales) is None
+    assert remoteok.SOURCE.parse_item({**sales, "tags": ["python"]}) is not None
+    assert remoteok.SOURCE.parse_item({**sales, "position": "Senior Backend Engineer"}) is not None
+    kept = [i for i in items if remoteok.SOURCE.parse_item(i)]
+    assert 0 < len(kept) < len(items)
+
+
 def test_remoteok_fetch():
+    n = len([i for i in remoteok.parse_payload(load("remoteok.json"))
+             if remoteok.SOURCE.parse_item(i)])
     jobs = remoteok.SOURCE.fetch(
         client(lambda r: httpx.Response(200, json=load("remoteok.json"))),
         set(), lambda j: True, {"max_pages": 5})
-    assert len(jobs) == 100
+    assert len(jobs) == n
 
 
 def test_jobicy_anywhere():

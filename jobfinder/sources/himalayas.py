@@ -40,6 +40,8 @@ class Himalayas(Source):
             return None
         names = [str(n) for n in item.get("locationRestrictions") or []]
         codes, unknown = countries_from(names)
+        if unknown:  # never return a narrower country list than the site gave
+            codes = []
         scope = "worldwide" if not names else ("countries" if codes else "unknown")
         lo, hi = _amount(item.get("minSalary")), _amount(item.get("maxSalary"))
         has_salary = lo is not None or hi is not None

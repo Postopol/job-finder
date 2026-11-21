@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from ..http import PoliteClient
 from ..models import Job
 from . import register
@@ -7,6 +9,16 @@ from .base import ParseError, Source
 from .geo import scope_from_location, utc_from_epoch
 
 URL = "https://remoteok.com/api"
+IT_TAGS = {
+    "dev", "developer", "devops", "engineer", "engineering", "programming", "software",
+    "sys admin", "sysadmin", "backend", "frontend", "front end", "full stack", "fullstack",
+    "web dev", "testing", "qa", "quality assurance", "security", "infosec", "data", "technical",
+    "cloud", "mobile", "web", "embedded", "python", "golang", "go", "java", "javascript",
+    "typescript", "react", "node", "nodejs", "php", "ruby", "rust", "c", "c plus plus",
+    "c sharp", "dotnet", "swift", "kotlin", "scala", "elixir", "aws", "kubernetes",
+    "docker", "postgres", "sql", "machine learning", "ai",
+}
+_DEV_TITLE = re.compile(r"developer|engineer|programmer|devops|\bsre\b", re.I)
 
 
 def parse_payload(payload) -> list[dict]:
@@ -29,6 +41,9 @@ class RemoteOK(Source):
         url, title = item.get("url") or item.get("apply_url"), item.get("position")
         if not url or not title or not item.get("id"):
             return None
+        tags = [str(t) for t in item.get("tags") or []]
+        if not (any(t.lower() in IT_TAGS for t in tags) or _DEV_TITLE.search(title)):
+            return None
         lo, hi = _amount(item.get("salary_min")), _amount(item.get("salary_max"))
         scope, codes = scope_from_location(item.get("location"))
         return Job(
@@ -40,7 +55,7 @@ class RemoteOK(Source):
             salary_period="year" if lo or hi else None,
             location_raw=item.get("location") or None, work_format="remote",
             remote_scope=scope, countries=codes,
-            stack=[str(t) for t in item.get("tags") or []],
+            stack=tags,
             published_at=utc_from_epoch(item.get("epoch")), raw=item)
 
     def fetch(self, client: PoliteClient, known: set[str], wants, settings: dict) -> list[Job]:
