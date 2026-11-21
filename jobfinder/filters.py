@@ -13,8 +13,9 @@ WORLDWIDE = ["worldwide", "anywhere", "work from anywhere", "global",
              "весь мир", "любой стране", "любая страна"]
 CIS_PHRASES = ["снг", "cis", "казахстан", "kazakhstan", "из любой точки снг"]
 
-HYBRID_WORDS = ["hybrid", "гибрид"]
-OFFICE_WORDS = ["on-site", "onsite", "в офисе", "офис"]
+HYBRID_RE = re.compile(r"(?<!\w)(?:hybrid|гибрид\w*)(?!\w)", re.IGNORECASE)
+OFFICE_RE = re.compile(r"(?<!\w)(?:on-site|onsite|офис\w*)(?!\w)", re.IGNORECASE)
+REMOTE_RE = re.compile(r"(?<!\w)(?:remote|удал[её]н\w*)(?!\w)", re.IGNORECASE)
 
 
 @dataclass
@@ -35,7 +36,7 @@ def classify_scope(job: Job) -> tuple[str, list[str]]:
     if job.countries:
         scope = "cis" if all(c in CIS for c in job.countries) else "countries"
         return scope, list(job.countries)
-    if job.remote_scope != "unknown":
+    if job.remote_scope not in ("unknown", "countries"):
         return job.remote_scope, []
 
     loc = job.location_raw or ""
@@ -57,9 +58,9 @@ def hidden_reason(job: Job, cfg: FilterConfig) -> str | None:
     if job.work_format in ("hybrid", "office"):
         return job.work_format
     text = f"{job.location_raw or ''} {job.title}"
-    if _any(text, HYBRID_WORDS):
+    if HYBRID_RE.search(text):
         return "hybrid"
-    if _any(text, OFFICE_WORDS):
+    if OFFICE_RE.search(text) and not REMOTE_RE.search(text):
         return "office"
 
     if job.remote_scope == "restricted":

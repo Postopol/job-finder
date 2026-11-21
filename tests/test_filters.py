@@ -32,3 +32,22 @@ def test_structured_countries_respected():
 ])
 def test_hidden_reason(job, reason):
     assert hidden_reason(mk(**job), FilterConfig(country="KZ", stopwords=["1С"])) == reason
+
+
+@pytest.mark.parametrize("loc,title,reason", [
+    ("Гибридный формат", "Python", "hybrid"),
+    ("Офис или удалёнка", "Python", None),
+    ("Офис, Москва", "Python", "office"),
+    ("работа в офисе", "Python", "office"),
+    ("Berlin, on-site", "Python", "office"),
+    ("Hybrid, remote days", "Python", "hybrid"),
+])
+def test_format_words(loc, title, reason):
+    assert hidden_reason(mk(location_raw=loc, title=title), FilterConfig()) == reason
+
+
+def test_countries_scope_without_countries_is_unknown():
+    j = mk(remote_scope="countries", location_raw="Remote", description_text="Nothing")
+    assert classify_scope(j) == ("unknown", [])
+    j = mk(remote_scope="countries", description_text="worldwide team")
+    assert classify_scope(j)[0] == "worldwide"
