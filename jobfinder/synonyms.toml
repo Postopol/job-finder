@@ -1,0 +1,14 @@
+# Groups of equivalent search terms (single words).
+groups = [
+    ["js", "javascript"],
+    ["ts", "typescript"],
+    ["k8s", "kubernetes"],
+    ["go", "golang", "голанг"],
+    ["senior", "старший", "ведущий", "сеньор"],
+    ["middle", "мидл"],
+    ["junior", "джун", "младший", "джуниор"],
+    ["python", "питон"],
+    ["devops", "девопс"],
+    ["frontend", "фронтенд"],
+    ["backend", "бэкенд", "бекенд"],
+]

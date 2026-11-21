@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from . import search
 from .dedup import dedup_key
 from .models import STATUSES, Job
 
@@ -99,6 +100,7 @@ def connect(path: Path | str) -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
     conn.executescript(SCHEMA)
+    search.ensure_fts(conn)
     return conn
 
 
@@ -231,6 +233,7 @@ def upsert_job(conn: sqlite3.Connection, job: Job, hidden_reason: str | None,
                 "INSERT INTO postings(job_id, source, source_id, url, first_seen_at, last_seen_at, raw) "
                 "VALUES(?,?,?,?,?,?,?)",
                 (job_id, job.source, job.source_id, job.url, now_s, now_s, raw))
+        search.index_job(conn, job_id)
     return job_id, is_new
 
 
