@@ -71,3 +71,16 @@ def test_normalize_job_keeps_existing_values():
     assert job.description_text == "given"
     assert job.salary_min == 1 and job.salary_max is None and job.salary_currency is None
     assert job.seniority == "lead"
+
+
+@pytest.mark.parametrize("text,period", [
+    ("почасовая оплата 1500 ₽", "hour"),
+    ("часовая ставка 1500 ₽", "hour"),
+    ("годовой оклад 3000000 ₽", "year"),
+    ("месячный доход 100000 ₽", "month"),
+    ("помесячно 100000 ₽", "month"),
+    ("частичная занятость 50000 ₽", "month"),
+    ("часто 50000 ₽, часть времени", "month"),
+])
+def test_russian_period_forms(text, period):
+    assert parse_salary(text).period == period

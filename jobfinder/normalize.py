@@ -25,9 +25,9 @@ _CURRENCIES = [
     ("GBP", re.compile(r"£|\bgbp\b", re.I)),
 ]
 _PERIODS = [
-    ("hour", re.compile(r"\b(?:hour|hourly|hr|h)\b|(?<!\w)час(?:а|ов)?(?!\w)", re.I)),
-    ("month", re.compile(r"\b(?:month|monthly|mo)\b|(?<!\w)мес(?:яц\w*)?(?!\w)", re.I)),
-    ("year", re.compile(r"\b(?:year|yearly|yr|annual|annually)\b|(?<!\w)год(?:а|у)?(?!\w)|/\s*y\b", re.I)),
+    ("hour", re.compile(r"\b(?:hour|hourly|hr|h)\b|(?<!\w)(?:по)?час(?:ов\w*|а|ы|у)?(?!\w)", re.I)),
+    ("month", re.compile(r"\b(?:month|monthly|mo)\b|(?<!\w)(?:по)?мес(?:яц\w*|яч\w*)?(?!\w)", re.I)),
+    ("year", re.compile(r"\b(?:year|yearly|yr|annual|annually)\b|(?<!\w)(?:годов\w*|год(?:а|у)?)(?!\w)|/\s*y\b", re.I)),
 ]
 _NUMBER = re.compile(
     r"(\d{1,3}(?:[ ,]\d{3})+|\d+(?:\.\d+)?)\s*(k\b|тыс\b\.?)?", re.I
