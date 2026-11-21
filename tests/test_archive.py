@@ -186,3 +186,16 @@ def test_reparse_isolates_corrupt_raw(conn, now):
     assert archive.reparse(conn, None, {"s1": FakeSource("s1")}) == 1
     assert db.get_job(conn, b)["title"] == "Reparsed Title"
     assert db.get_job(conn, a)["title"] == "Python Developer"
+
+
+def test_reparse_keeps_detail_description_and_filters_on_it(conn, now):
+    # list raw has no description; the stored one came from a detail page
+    detail = "<p>Python backend. Гражданство/локация: только РФ</p>"
+    jid, _ = db.upsert_job(conn, mk(raw={"id": 1}, description_html=detail,
+                                    description_text="Python backend. Гражданство/локация: только РФ"),
+                           "restricted", now)
+    assert archive.reparse(conn, None, {"s1": FakeSource("s1")}) == 1
+    j = db.get_job(conn, jid)
+    assert j["title"] == "Reparsed Title"
+    assert j["description_html"] == detail
+    assert j["hidden_reason"] == "restricted"

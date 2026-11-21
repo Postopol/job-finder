@@ -82,9 +82,15 @@ def _merge(jobs: list[Job]) -> Job:
     return merged
 
 
-def _keep_existing(conn, job_id: int, merged: Job) -> None:
+def _keep_description(old: dict, merged: Job) -> None:
+    """Detail pages are not saved in raw: a longer stored description came from one, keep it."""
+    if len(old["description_html"] or "") > len(merged.description_html or ""):
+        merged.description_html = old["description_html"]
+        merged.description_text = old["description_text"]
+
+
+def _keep_existing(old: dict, merged: Job) -> None:
     """Some postings were not re-parsed: do not erase what they contributed."""
-    old = db.get_job(conn, job_id)
     for n in _SCALARS:
         if getattr(merged, n) is None and old[n] is not None:
             val = old[n]
@@ -92,9 +98,6 @@ def _keep_existing(conn, job_id: int, merged: Job) -> None:
     for n in _LISTS:
         if not getattr(merged, n):
             setattr(merged, n, old[n])
-    if len(old["description_html"] or "") > len(merged.description_html or ""):
-        merged.description_html = old["description_html"]
-        merged.description_text = old["description_text"]
 
 
 def reparse(conn, source: str | None = None, sources: dict[str, Source] | None = None) -> int:
@@ -121,17 +124,19 @@ def reparse(conn, source: str | None = None, sources: dict[str, Source] | None =
                 if src is None:
                     continue
                 job = src.parse_item(json.loads(zlib.decompress(r["raw"])))
-                if job is None:
-                    continue
-                parsed.append((job, _prepare(job, cfg)))
+                if job is not None:
+                    parsed.append(job)
             if not parsed:
                 continue
-            merged = _merge([j for j, _ in parsed])
+            merged = _merge(parsed)
+            old = db.get_job(conn, job_id)
             total = conn.execute("SELECT COUNT(*) FROM postings WHERE job_id=?",
                                  (job_id,)).fetchone()[0]
             if len(parsed) < total:
-                _keep_existing(conn, job_id, merged)
-            db.update_job_fields(conn, job_id, merged, parsed[0][1])
+                _keep_existing(old, merged)
+            _keep_description(old, merged)
+            # filters run on the full description, as in collect
+            db.update_job_fields(conn, job_id, merged, _prepare(merged, cfg))
             count += 1
         except Exception:
             log.warning("reparse: не удалось обработать вакансию %s", job_id, exc_info=True)
