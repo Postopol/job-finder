@@ -73,3 +73,24 @@ def hidden_reason(job: Job, cfg: FilterConfig) -> str | None:
         if w and _has(haystack, w):
             return f"stopword:{w.lower()}"
     return None
+
+
+NON_IT_TITLE_WORDS = [
+    "sales", "account executive", "account manager", "account director",
+    "business development", "marketing", "communications", "customer success",
+    "customer support", "customer service", "support engineer", "support specialist",
+    "technical support", "presales", "pre-sales", "solutions engineer",
+    "solutions consultant", "recruiter", "talent", "hr", "people partner", "accountant",
+    "accounting", "finance", "legal", "counsel", "clinical", "nurse", "therapist",
+    "medical", "physician", "teacher", "tutor", "art director", "creative director",
+    "copywriter", "content writer", "office manager", "executive assistant",
+    "operations manager",
+]
+_NON_IT_RE = re.compile(
+    r"(?<!\w)(?:" + "|".join(re.escape(w) for w in NON_IT_TITLE_WORDS) + r")(?!\w)",
+    re.IGNORECASE)
+
+
+def is_non_it_title(title: str) -> bool:
+    """True when the title names a clearly non-IT role (sales, support, HR, ...)."""
+    return _NON_IT_RE.search(title or "") is not None

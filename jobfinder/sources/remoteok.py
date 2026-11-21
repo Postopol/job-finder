@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from ..filters import is_non_it_title
 from ..http import PoliteClient
 from ..models import Job
 from . import register
@@ -10,15 +11,16 @@ from .geo import scope_from_location, utc_from_epoch
 
 URL = "https://remoteok.com/api"
 IT_TAGS = {
-    "dev", "developer", "devops", "engineer", "engineering", "programming", "software",
-    "sys admin", "sysadmin", "backend", "frontend", "front end", "full stack", "fullstack",
-    "web dev", "testing", "qa", "quality assurance", "security", "infosec", "data", "technical",
-    "cloud", "mobile", "web", "embedded", "python", "golang", "go", "java", "javascript",
-    "typescript", "react", "node", "nodejs", "php", "ruby", "rust", "c", "c plus plus",
-    "c sharp", "dotnet", "swift", "kotlin", "scala", "elixir", "aws", "kubernetes",
-    "docker", "postgres", "sql", "machine learning", "ai",
+    "dev", "developer", "devops", "programming", "software", "sys admin", "sysadmin",
+    "backend", "frontend", "front end", "full stack", "fullstack", "web dev", "qa",
+    "testing", "quality assurance", "infosec", "cloud", "mobile", "embedded", "python",
+    "golang", "java", "javascript", "typescript", "react", "node", "nodejs", "php", "ruby",
+    "rust", "c plus plus", "c sharp", "dotnet", "swift", "kotlin", "scala", "elixir", "aws",
+    "kubernetes", "docker", "postgres", "sql", "machine learning",
 }
-_DEV_TITLE = re.compile(r"developer|engineer|programmer|devops|\bsre\b", re.I)
+_DEV_TITLE = re.compile(
+    r"developer|engineer|programmer|devops|\bsre\b|architect|data scientist|\bml\b|\bqa\b|tester",
+    re.I)
 
 
 def parse_payload(payload) -> list[dict]:
@@ -42,7 +44,7 @@ class RemoteOK(Source):
         if not url or not title or not item.get("id"):
             return None
         tags = [str(t) for t in item.get("tags") or []]
-        if not (any(t.lower() in IT_TAGS for t in tags) or _DEV_TITLE.search(title)):
+        if is_non_it_title(title) or not (any(t.lower() in IT_TAGS for t in tags) or _DEV_TITLE.search(title)):
             return None
         lo, hi = _amount(item.get("salary_min")), _amount(item.get("salary_max"))
         scope, codes = scope_from_location(item.get("location"))

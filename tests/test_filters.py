@@ -1,7 +1,7 @@
 import pytest
 
 from conftest import mk
-from jobfinder.filters import FilterConfig, classify_scope, hidden_reason
+from jobfinder.filters import FilterConfig, classify_scope, hidden_reason, is_non_it_title
 
 
 @pytest.mark.parametrize("loc,desc,expected", [
@@ -56,3 +56,13 @@ def test_countries_scope_without_countries_is_unknown():
 def test_hidden_countries_scope_empty_countries_not_hidden():
     j = mk(remote_scope="countries", countries=[], location_raw="Remote", title="Python")
     assert hidden_reason(j, FilterConfig()) is None
+
+
+@pytest.mark.parametrize("title,expected", [
+    ("Senior Sales Engineer", True), ("Customer Success Engineer", True),
+    ("Backend Engineer", False), ("Data Engineer", False),
+    ("Technical Support Engineer", True), ("Art Director", True),
+    ("Python Developer", False),
+])
+def test_is_non_it_title(title, expected):
+    assert is_non_it_title(title) is expected

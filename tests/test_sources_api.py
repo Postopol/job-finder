@@ -118,15 +118,35 @@ def test_remoteok_it_filter():
     base = items[0]
     sales = {**base, "position": "Account Executive", "tags": ["sales", "customer support"]}
     assert remoteok.SOURCE.parse_item(sales) is None
-    assert remoteok.SOURCE.parse_item({**sales, "tags": ["python"]}) is not None
+    assert remoteok.SOURCE.parse_item({**sales, "position": "Staff Writer", "tags": ["python"]}) is not None
     assert remoteok.SOURCE.parse_item({**sales, "position": "Senior Backend Engineer"}) is not None
     kept = [i for i in items if remoteok.SOURCE.parse_item(i)]
     assert 0 < len(kept) < len(items)
 
 
+NON_IT = ["Account Director", "Art Director", "Sr Sales Ops Analyst", "Director, Sales",
+          "Velocity, Sales Director - USA & Europe", "PreSales Solutions Engineer",
+          "Enterprise Solutions Engineer, East", "Senior Sales Engineer",
+          "Customer Success Engineer", "Mental Health Clinical Supervisor",
+          "Marketing and Communications Officer",
+          "L1 Technical Support Engineer (Spanish-Speaking)",
+          "Designated Technical Support Engineer - West"]
+IT = ["Senior Software Engineer", "Staff Security Engineer - AppSec",
+      "Principal DevSecOps Engineer", "Senior Data Engineer Tech Foundations",
+      "Senior Software Developer - Canada"]
+
+
+def test_remoteok_non_it_titles_dropped_and_dev_kept():
+    by_title = {i["position"]: i for i in remoteok.parse_payload(load("remoteok.json"))}
+    for t in NON_IT:
+        assert t in by_title, t
+        assert remoteok.SOURCE.parse_item(by_title[t]) is None, t
+    for t in IT:
+        assert remoteok.SOURCE.parse_item(by_title[t]) is not None, t
+
+
 def test_remoteok_fetch():
-    n = len([i for i in remoteok.parse_payload(load("remoteok.json"))
-             if remoteok.SOURCE.parse_item(i)])
+    n = 29
     jobs = remoteok.SOURCE.fetch(
         client(lambda r: httpx.Response(200, json=load("remoteok.json"))),
         set(), lambda j: True, {"max_pages": 5})
