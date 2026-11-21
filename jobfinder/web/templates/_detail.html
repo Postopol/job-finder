@@ -1,0 +1,63 @@
+{% set job = d.job %}
+{% if oob %}<input type="hidden" name="job" id="job-input" value="{{ job.id }}" hx-swap-oob="true">{% endif %}
+<div class="detail__head">
+  <p class="qz-eyebrow small">{{ d.source }}{% if d.ago %} · {{ d.ago }}{% endif %}</p>
+  <h1 class="detail__title">{{ job.title }}</h1>
+  {% if job.company %}<p class="detail__company">{{ job.company }}</p>{% endif %}
+</div>
+
+{% if d.hidden_reasons %}
+<p class="hidden-reason">Скрыто: {{ d.hidden_reasons|join(", ") }}</p>
+{% endif %}
+
+<div class="qz-hud facts">
+  <div><div class="facts__k">Зарплата</div><div class="facts__v facts__v--big">{{ d.salary }}</div></div>
+  <div><div class="facts__k">Где можно работать</div><div class="facts__v">{{ d.scope }}</div></div>
+  <div><div class="facts__k">Уровень</div><div class="facts__v">{{ d.level }}</div></div>
+  <div><div class="facts__k">Язык</div><div class="facts__v">{{ d.lang }}</div></div>
+</div>
+
+{% if job.stack %}
+<div class="tags">
+  {% for tag in job.stack %}<span class="tag">{{ tag }}</span>{% endfor %}
+</div>
+{% endif %}
+
+<div class="actions">
+  <a class="qz-btn qz-btn--primary" href="{{ d.primary.url }}" target="_blank" rel="noopener">Открыть на {{ d.primary.label }} <span class="qz-arrow" aria-hidden="true"></span></a>
+  <details class="dropdown">
+    <summary class="qz-btn qz-btn--outline">Найти отзывы о компании</summary>
+    <div class="dropdown__menu">
+      {% for r in d.reviews %}
+      <a href="{{ r.href }}" target="_blank" rel="noopener"><span>{{ r.label }}</span><span class="dropdown__hint">{{ r.hint }}</span></a>
+      {% endfor %}
+    </div>
+  </details>
+</div>
+{% if d.others %}
+<p class="also small mute">Также опубликовано:
+  {% for p in d.others %}<a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.label }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+</p>
+{% endif %}
+
+<form class="status-group" role="group" aria-label="Мой статус"
+      action="/jobs/{{ job.id }}/status" method="post"
+      hx-post="/jobs/{{ job.id }}/status" hx-target="#detail" hx-swap="innerHTML">
+  <span class="label mute">Мой статус</span>
+  {% for b in d.buttons %}
+  <button type="submit" name="status" value="{{ b.value }}" class="qz-tab" aria-pressed="{{ 'true' if b.pressed else 'false' }}">{{ b.label }}</button>
+  {% endfor %}
+</form>
+
+<section class="description">
+  <h2 class="section-title">О вакансии</h2>
+  {% if d.description_html %}
+  <div class="prose">{{ d.description_html|safe }}</div>
+  {% elif job.description_text %}
+  <div class="prose"><p>{{ job.description_text|nl2br }}</p></div>
+  {% else %}
+  <p class="mute">Описания нет — смотри оригинал по ссылке выше.</p>
+  {% endif %}
+</section>
+
+<div class="phase2-note">Этап 2: здесь появится оценка, насколько вакансия подходит под твоё резюме, и чего не хватает.</div>

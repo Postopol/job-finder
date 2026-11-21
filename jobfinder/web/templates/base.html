@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Job Finder{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitcount+Prop+Single:wght@500;600;700;800&amp;family=Mona+Sans:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+<script src="{{ url_for('static', path='htmx.min.js') }}" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <p class="qz-eyebrow brand">JOB FINDER</p>
+  <nav class="topnav" aria-label="Разделы">
+    <a href="/" {% if active == 'feed' %}aria-current="page"{% endif %}>Вакансии</a>
+    <a href="/triage" {% if active == 'triage' %}aria-current="page"{% endif %}>Разбор</a>
+    <a href="/sources" {% if active == 'sources' %}aria-current="page"{% endif %}>Источники</a>
+  </nav>
+  <div class="topbar-meta">
+    {% block header_meta %}
+    <span>
+      {% if updated_ago %}Обновлено {{ updated_ago }}{% if new_total %} · <span class="accent-cyan">+{{ new_total }} новых</span>{% endif %}
+      {% else %}Сбора ещё не было{% endif %}
+    </span>
+    {% endblock %}
+  </div>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+{% block scripts %}{% endblock %}
+</body>
+</html>

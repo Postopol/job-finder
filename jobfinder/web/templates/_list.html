@@ -1,0 +1,27 @@
+{% if oob %}<input type="hidden" name="section" id="section-input" value="{{ f.section }}" hx-swap-oob="true">{% endif %}
+<div class="qz-tabs" role="tablist" aria-label="Раздел">
+  {% for t in tabs %}
+  <a class="qz-tab" role="tab" href="{{ t.url }}" aria-selected="{{ 'true' if t.selected else 'false' }}"
+     hx-get="/list" hx-include="#filters" hx-vals='{"section": "{{ t.id }}"}' hx-target="#list">{{ t.label }} · {{ t.count }}</a>
+  {% endfor %}
+</div>
+<div class="job-items">
+  {% for it in items %}
+  <a class="job-item{% if it.id == f.job %} is-selected{% endif %}" href="{{ it.url }}"
+     hx-get="/jobs/{{ it.id }}" hx-target="#detail" hx-swap="innerHTML" hx-push-url="{{ it.url }}">
+    <span class="job-item__top">
+      <span class="job-item__title">{{ it.title }}</span>
+      <span class="job-item__ago">{{ it.ago }}</span>
+    </span>
+    <span class="job-item__company">{% if it.company %}{{ it.company }} · {% endif %}<span class="ink">{{ it.salary_label }}</span></span>
+    <span class="job-item__meta">
+      <span class="status status--{{ it.status }}"><span class="dot" aria-hidden="true"></span>{{ it.status_label }}</span>
+      <span>·</span><span>{{ it.source_label }}</span><span>·</span><span>{{ it.scope_label }}</span>
+      {% if f.section == 'hidden' and it.hidden_label %}<span>·</span><span class="reason">скрыто: {{ it.hidden_label }}</span>{% endif %}
+    </span>
+  </a>
+  {% else %}
+  <p class="empty mute">Ничего не нашлось. Попробуй ослабить фильтры{% if f.section == 'feed' %} или увеличить свежесть{% endif %}.</p>
+  {% endfor %}
+  {% if limit_hit %}<p class="note pad">Показаны первые {{ items|length }}. Уточни поиск, чтобы увидеть остальные.</p>{% endif %}
+</div>

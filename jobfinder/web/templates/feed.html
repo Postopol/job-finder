@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Job Finder — вакансии{% endblock %}
+{% block content %}
+<div class="feed">
+  <aside class="filters" aria-label="Фильтры">
+    <form id="filters" action="/" method="get"
+          hx-get="/list" hx-target="#list" hx-swap="innerHTML"
+          hx-trigger="change, input changed delay:400ms from:#q, submit">
+      <input type="hidden" name="section" id="section-input" value="{{ f.section }}">
+      <input type="hidden" name="job" id="job-input" value="{{ f.job or '' }}">
+
+      <div class="field">
+        <label class="label" for="q">Поиск</label>
+        <input id="q" name="q" type="search" value="{{ f.q }}" placeholder="python, devops, senior…" autocomplete="off">
+      </div>
+
+      <fieldset class="field">
+        <legend class="label">Источники</legend>
+        <input type="hidden" name="src" value="">
+        {% for s in sources %}
+        <label class="check">
+          <input type="checkbox" name="src" value="{{ s.name }}" {% if s.on %}checked{% endif %}>
+          <span class="grow">{{ s.label }}</span>
+          <span class="mute small">{{ s.count }}</span>
+        </label>
+        {% endfor %}
+      </fieldset>
+
+      <fieldset class="field">
+        <legend class="label">Где можно работать</legend>
+        <input type="hidden" name="scope" value="">
+        {% for value, label in scope_options %}
+        <label class="check">
+          <input type="checkbox" name="scope" value="{{ value }}" {% if f.scope is none or value in f.scope %}checked{% endif %}>
+          <span>{{ label }}</span>
+        </label>
+        {% endfor %}
+        <p class="note">«Только США», «только ЕС» и другие страны без твоей скрыты</p>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend class="label">Язык вакансии</legend>
+        <input type="hidden" name="lang" value="">
+        <div class="chips">
+          {% for value, label in lang_options %}
+          <label class="qz-tab chip">
+            <input type="checkbox" name="lang" value="{{ value }}" {% if f.lang is none or value in f.lang %}checked{% endif %}>
+            {{ label }}
+          </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      <div class="field">
+        <label class="label" for="salary">Зарплата от, $ / мес</label>
+        <input id="salary" name="salary" type="text" inputmode="numeric" placeholder="2 500"
+               value="{{ f.salary if f.salary is not none else '' }}">
+        <input type="hidden" name="nosalary" value="0">
+        <label class="check small mid">
+          <input type="checkbox" name="nosalary" value="1" {% if f.nosalary %}checked{% endif %}>
+          <span>Показывать без зарплаты</span>
+        </label>
+      </div>
+
+      <div class="field">
+        <label class="label" for="fresh">Свежесть</label>
+        <select id="fresh" name="fresh">
+          {% set ns = namespace(found=false) %}
+          {% for days, label in fresh_options %}
+          {% if f.fresh_raw == days|string %}{% set ns.found = true %}{% endif %}
+          <option value="{{ days }}" {% if f.fresh_raw == days|string %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+          {% if not ns.found and f.fresh_raw != 'all' %}
+          <option value="{{ f.fresh_raw }}" selected>За {{ f.fresh_raw }} дн</option>
+          {% endif %}
+          <option value="all" {% if f.fresh_raw == 'all' %}selected{% endif %}>Без ограничения</option>
+        </select>
+        <p class="note">Свежесть действует только на «Ленту»</p>
+      </div>
+
+      <noscript><button type="submit" class="qz-btn qz-btn--outline">Применить</button></noscript>
+    </form>
+  </aside>
+
+  <section id="list" class="list" aria-label="Список вакансий"
+           hx-get="/list" hx-include="#filters" hx-trigger="list-changed from:body" hx-swap="innerHTML"
+           hx-disinherit="*">
+    {% include "_list.html" %}
+  </section>
+
+  <article id="detail" class="detail" aria-label="Вакансия" aria-live="polite">
+    {% if d %}
+      {% include "_detail.html" %}
+    {% else %}
+      <div class="empty">
+        <p class="qz-eyebrow">Вакансия</p>
+        <p class="mute">Выбери вакансию в списке, чтобы увидеть её целиком.</p>
+      </div>
+    {% endif %}
+  </article>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  // Highlight the clicked item right away; on narrow screens bring the detail panel into view.
+  document.addEventListener("click", function (e) {
+    var item = e.target.closest(".job-item");
+    if (!item) return;
+    document.querySelectorAll(".job-item.is-selected").forEach(function (el) { el.classList.remove("is-selected"); });
+    item.classList.add("is-selected");
+  });
+  document.addEventListener("htmx:afterSwap", function (e) {
+    if (e.detail.target.id === "detail" && window.matchMedia("(max-width: 1099px)").matches) {
+      e.detail.target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+</script>
+{% endblock %}
