@@ -63,6 +63,9 @@ def hidden_reason(job: Job, cfg: FilterConfig) -> str | None:
     if OFFICE_RE.search(text) and not REMOTE_RE.search(text):
         return "office"
 
+    if is_non_it_title(job.title):
+        return "non_it"
+
     if job.remote_scope == "restricted":
         return "restricted"
     if job.remote_scope == "countries" and job.countries and cfg.country not in job.countries:
@@ -84,7 +87,8 @@ NON_IT_TITLE_WORDS = [
     "accounting", "finance", "legal", "counsel", "clinical", "nurse", "therapist",
     "medical", "physician", "teacher", "tutor", "art director", "creative director",
     "copywriter", "content writer", "office manager", "executive assistant",
-    "operations manager",
+    "operations manager", "proposal", "community manager", "media specialist",
+    "internal controls", "sox", "compensation", "sales development",
 ]
 _NON_IT_RE = re.compile(
     r"(?<!\w)(?:" + "|".join(re.escape(w) for w in NON_IT_TITLE_WORDS) + r")(?!\w)",

@@ -18,6 +18,7 @@ _FLAGS = re.compile(r"[\U0001F1E6-\U0001F1FF]")
 def parse_payload(payload) -> list[dict]:
     out = []
     for e in feed_entries(payload):
+        pub = entry_published(e)
         tags = e.get("tags") or []
         out.append({
             "title": e.get("title"), "link": e.get("link"),
@@ -25,7 +26,7 @@ def parse_payload(payload) -> list[dict]:
             "state": e.get("state") or "", "category": tags[0].get("term") if tags else "",
             "type": e.get("type") or "", "description": e.get("summary") or "",
             "published": e.get("published") or "",
-            "published_at": entry_published(e).isoformat() if entry_published(e) else None,
+            "published_at": pub.isoformat() if pub else None,
         })
     return out
 

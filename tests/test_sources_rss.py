@@ -184,3 +184,25 @@ def test_hn_fetch_first_run_without_settings():
     jobs = hn.HackerNews(now=lambda: NOW).fetch(client(_handler(seen)), set(), lambda j: True,
                                                 settings)
     assert len(seen) == 2 and jobs and settings["hn_last_story"] == "50338728"
+
+
+def _reasons(mod, payload):
+    from jobfinder.filters import FilterConfig, hidden_reason
+    jobs = [j for j in map(mod.SOURCE.parse_item, mod.parse_payload(payload)) if j]
+    return {j.title: hidden_reason(j, FilterConfig()) for j in jobs}
+
+
+def test_remotefirst_non_it_hidden():
+    r = _reasons(remotefirst, text("remotefirst.rss"))
+    for t in ("CAAS Staff Accountant", "Senior Proposal Consultant", "Go-to-Market Media Specialist",
+              "Community Manager", "Sales Development Representative - Remote"):
+        assert r[t] == "non_it", t
+    for t in ("Senior iOS Engineer", "Software Engineer", "Analytics Engineer"):
+        assert r[t] is None, t
+
+
+def test_wwr_non_it_hidden():
+    r = _reasons(wwr, text("wwr.rss"))
+    assert r["Manager, Sales Compensation"] == "non_it"
+    assert r["Associate Manager, SOX and Internal Controls"] == "non_it"
+    assert r["Senior Platform Engineer"] is None and r["Machine Learning Engineer"] is None

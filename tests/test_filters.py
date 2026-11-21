@@ -66,3 +66,11 @@ def test_hidden_countries_scope_empty_countries_not_hidden():
 ])
 def test_is_non_it_title(title, expected):
     assert is_non_it_title(title) is expected
+
+
+def test_hidden_reason_non_it_before_restricted_and_stopwords():
+    cfg = FilterConfig(stopwords=["accountant"])
+    assert hidden_reason(mk(title="Staff Accountant"), cfg) == "non_it"
+    assert hidden_reason(mk(title="Staff Accountant", remote_scope="restricted"), cfg) == "non_it"
+    assert hidden_reason(mk(title="Staff Accountant", work_format="hybrid"), cfg) == "hybrid"
+    assert hidden_reason(mk(title="Backend Engineer"), FilterConfig()) is None
