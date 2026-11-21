@@ -91,6 +91,13 @@ def test_salary_filter_uses_usd(conn, now):
     assert set(titles(search_jobs(conn, p, now))) == {"RU", "None"}
 
 
+def test_hide_no_salary_without_amount(conn, now):
+    add(conn, title="EN", salary_raw="$1,000 / month")
+    add(conn, title="None", source_id="3")
+    assert titles(search_jobs(conn, SearchParams(include_no_salary=False), now)) == ["EN"]
+    assert set(titles(search_jobs(conn, SearchParams(), now))) == {"EN", "None"}
+
+
 def test_reindex_on_update(conn, now):
     add(conn, title="Python Developer", source_id="1")
     add(conn, title="Python Developer", source_id="1", description_text="rust")

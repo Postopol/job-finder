@@ -150,6 +150,8 @@ def _where(p: SearchParams, section: str, now: datetime) -> tuple[str, list] | N
         if p.include_no_salary:
             cond = f"({cond} OR j.salary_usd_month IS NULL)"
         conds.append(cond)
+    elif not p.include_no_salary:  # «Показывать без зарплаты» off, no amount entered
+        conds.append("j.salary_usd_month IS NOT NULL")
     return " AND ".join(conds), args
 
 
