@@ -51,3 +51,8 @@ def test_countries_scope_without_countries_is_unknown():
     assert classify_scope(j) == ("unknown", [])
     j = mk(remote_scope="countries", description_text="worldwide team")
     assert classify_scope(j)[0] == "worldwide"
+
+
+def test_hidden_countries_scope_empty_countries_not_hidden():
+    j = mk(remote_scope="countries", countries=[], location_raw="Remote", title="Python")
+    assert hidden_reason(j, FilterConfig()) is None

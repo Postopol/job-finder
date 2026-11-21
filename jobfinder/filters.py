@@ -65,7 +65,7 @@ def hidden_reason(job: Job, cfg: FilterConfig) -> str | None:
 
     if job.remote_scope == "restricted":
         return "restricted"
-    if job.remote_scope == "countries" and cfg.country not in job.countries:
+    if job.remote_scope == "countries" and job.countries and cfg.country not in job.countries:
         return "restricted"
 
     haystack = f"{job.title} {job.description_text or ''}"
