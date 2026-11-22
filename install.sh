@@ -38,6 +38,12 @@ fi
 say "Ставлю зависимости"
 uv sync --project "$DIR" --no-dev
 
+if [ -f "$DIR/data/jobs.db" ]; then
+  say "Пересчитываю собранные вакансии по новым правилам"
+  uv run --project "$DIR" --no-dev jobfinder reparse \
+    || echo "Пересчёт не удался. Повтори вручную: jobfinder reparse"
+fi
+
 mkdir -p "$BIN"
 cat > "$BIN/jobfinder" <<EOF
 #!/usr/bin/env bash

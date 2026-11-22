@@ -182,3 +182,14 @@ def test_new_domain_words_keep_it_titles(title):
     "Kyrgyz Language Specialist - Freelance AI Trainer Project"])
 def test_ai_trainer_gigs_stay_visible(title):  # the user wants side gigs in the feed
     assert is_non_it_title(title) is False
+
+
+def test_call_center_and_marketing_heads_are_non_it():
+    from jobfinder.filters import is_non_it_title
+    for t in ("Оператор call-центра", "Оператор call-центра (горячие заявки)",
+              "Оператор колл-центра", "Руководитель направления маркетинга",
+              "Специалист контакт-центра"):
+        assert is_non_it_title(t), t
+    for t in ("Разработчик для контакт-центра", "Аналитик маркетинга (SQL)",
+              "Консультант SAP FICO", "Data Engineer (маркетинговая аналитика)"):
+        assert not is_non_it_title(t), t

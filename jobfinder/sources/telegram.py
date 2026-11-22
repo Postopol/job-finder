@@ -16,7 +16,8 @@ from ..models import Job
 from ..normalize import html_to_text
 from . import register
 from .base import ParseError, Source
-from .geo import utc_from_iso
+from ..filters import REGIONS_WITHOUT_KZ
+from .geo import country_code, split_places, utc_from_iso
 
 log = logging.getLogger(__name__)
 PAGE_URL = "https://t.me/s/{channel}"
@@ -79,7 +80,8 @@ _FIELDS = {
     "salary": ("зп", "з/п", "зарплата", "вилка", "вилка зп", "вилка з/п", "уровень зп",
                "оклад", "доход", "salary", "compensation", "бюджет"),
     "format": ("формат", "формат работы", "format", "тип работы", "work format"),
-    "location": ("локация", "location", "город", "место работы", "страна"),
+    "location": ("локация", "локации", "location", "locations", "город", "место работы",
+                 "страна", "регион"),
     "citizenship": ("гражданство", "citizenship", "резидентство", "локация/гражданство",
                     "гражданство/локация"),
 }
@@ -105,8 +107,12 @@ _TITLE_NOISE = re.compile(
     re.I)
 # a company is a name, not a role or a sentence («Healz.ai», «Ryze AI» are fine)
 _COMPANY_ROLE = re.compile(
-    r"(?<!\w)(?:engineer|developer|programmer|analyst|designer|manager|разработчи\w*|"
-    r"инженер\w*|аналитик\w*|менеджер\w*)(?!\w)", re.I)
+    r"(?<!\w)(?:engineer|developer|programmer|analyst|designer|manager|lead|head|owner|"
+    r"director|cto|ceo|разработчи\w*|инженер\w*|аналитик\w*|менеджер\w*|руководител\w*)(?!\w)",
+    re.I)
+# «Компания: NDA (FinTech)», «Компания: Стартап.» name no company
+_PLACEHOLDER_COMPANY = re.compile(r"^(?:nda|стартап|startup|конфиденциально|не раскрыва\w*|"
+                                  r"не указан\w*|секрет\w*)(?!\w)", re.I)
 _LINK_TEXT = re.compile(r"^(?:смотреть|откликнуться|подробнее|читать|apply|details)\b", re.I)
 _DOT_THOUSANDS = re.compile(r"(?<=\d)\.(?=\d{3}(?!\d))")  # «$5.000», «200.000»
 
@@ -122,7 +128,8 @@ _COUNTRY_WORDS = (("RU", r"росси\w*|рф"), ("BY", r"беларус\w*|бе
                   ("GE", r"грузи[ия]\w*"), ("KG", r"кыргызстан\w*|киргиз\w*"),
                   ("RS", r"серби\w*"), ("UA", r"украин\w*"))
 _COUNTRY_RE = [(code, re.compile(rf"(?<!\w)(?:{rx})(?!\w)", re.I)) for code, rx in _COUNTRY_WORDS]
-_LIMITED = re.compile(r"(?<!\w)(?:по|из|в пределах|только|резидент\w*|граждан\w*)(?!\w)", re.I)
+# «удаленно (кроме РФ и РБ)», «офис в Армении»: countries named here are not a limit
+_NOT_LIMIT = re.compile(r"(?<!\w)(?:кроме|except|офис\w*|office)(?!\w)[^;/)]*", re.I)
 _NO_SALARY = re.compile(r"не указан|по договор|обсуждается|competitive|tbd", re.I)
 _CYRILLIC = re.compile(r"[а-яё]", re.I)
 _LATIN = re.compile(r"[a-z]", re.I)
@@ -152,8 +159,10 @@ def _title_ok(title: str) -> bool:
 
 
 def _company_ok(company: str | None) -> str | None:
-    company = (company or "").strip()
-    return company if 0 < len(company) <= 60 and not _COMPANY_ROLE.search(company) else None
+    company = (company or "").strip().rstrip(".").strip()
+    if _PLACEHOLDER_COMPANY.match(company) or _COMPANY_ROLE.search(company):
+        return None
+    return company if 0 < len(company) <= 60 else None
 
 
 def _split_company(title: str) -> tuple[str, str | None]:
@@ -178,9 +187,22 @@ def _work_format(where: str, tags: set[str], text: str) -> str | None:
 
 
 def _countries(where: str, citizenship: str) -> list[str]:
-    """Countries the job is limited to: «удалённо по России», «Гражданство: РФ, РБ»."""
-    text = citizenship if not _LIMITED.search(where) else f"{where} ; {citizenship}"
+    """Countries the job is limited to: «удалённо по России», «Удаленный РФ», «Гражданство: РФ, РБ».
+
+    Not a limit: excluded countries («кроме РФ»), the office country, a worldwide job."""
+    place = "" if _WORLDWIDE.search(where) else _NOT_LIMIT.sub(" ", where)
+    text = f"{place} ; {citizenship}"
     return [code for code, rx in _COUNTRY_RE if rx.search(text)]
+
+
+def _is_place(line: str) -> bool:
+    """A line about where to work: «Remote», «Удаленный РФ», «Europe, Poland»."""
+    if any(rx.search(line) for rx in (_REMOTE, _HYBRID, _OFFICE, _WORLDWIDE, _RELOCATION)):
+        return True
+    if any(rx.search(line) for _, rx in _COUNTRY_RE):
+        return True
+    parts = [p.lower().strip(" ()") for p in split_places(line)]
+    return bool(parts) and all(p in REGIONS_WITHOUT_KZ or country_code(p) for p in parts)
 
 
 def _lang(text: str) -> str:
@@ -241,8 +263,14 @@ class Telegram(Source):
         else:
             return None
 
+        if "company" in fields:  # «Бизнес-аналитик в Unity Parent» + «Компания: Unity Parent»
+            named = fields["company"][0].strip().rstrip(".").strip()
+            cut = title[:-len(named) - 3].strip()
+            if named and title.lower().endswith(f" в {named.lower()}") and _title_ok(cut):
+                title = cut
+
         # the short line right under the title: «Remote», «Удалённо из любой страны», «Cyprus»
-        near = [_clean(ln) for ln in content[start:start + 1] if len(ln) <= 60]
+        near = [_clean(ln) for ln in content[start:start + 1] if len(ln) <= 60 and _is_place(ln)]
         where = " ; ".join(fields.get("format", []) + fields.get("location", []) + near)
         has_signal = (tags & (_VACANCY_TAGS | _REMOTE_TAGS | _HYBRID_TAGS | _OFFICE_TAGS)
                       or fields.keys() & {"title", "company", "salary", "format"}

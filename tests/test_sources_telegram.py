@@ -269,3 +269,73 @@ def test_reparse_from_raw():
     j = job(101)
     again = SRC.parse_item(json.loads(json.dumps(j.raw)))
     assert again.title == j.title and again.source_id == j.source_id
+
+
+# ---- real posts that leaked into the feed
+
+def post(*lines, tags=""):
+    html = "<br/>".join(lines) + (f"<br/>{tags}" if tags else "")
+    return SRC.parse_item({"channel": "c", "id": 1, "html": html,
+                           "published_at": "2026-11-20T09:00:00+00:00"})
+
+
+def test_link_text_line_is_not_a_location():
+    j = post("Аналитик в отдел рисков в NDA (FinTech)", "Формат: удаленно",
+             "Зарплата: 110 000 - 120 000 ₽", "Компания: NDA (FinTech)", "Смотреть вакансию: ⬇️",
+             "https://jobrocket.ru/job/x", tags="#middle #remote")
+    assert j.location_raw == "удаленно"
+    assert "Смотреть" not in (j.location_raw or "")
+
+
+def test_placeholder_companies_dropped_and_company_cut_from_title():
+    j = post("Аналитик в отдел рисков в NDA (FinTech)", "Формат: удаленно", "Компания: NDA (FinTech)")
+    assert j.company is None and j.title == "Аналитик в отдел рисков"
+    j = post("Бизнес-аналитик в Unity Parent", "Формат: удаленно", "Компания: Unity Parent")
+    assert j.company == "Unity Parent" and j.title == "Бизнес-аналитик"
+    j = post("Вакансия: Growth Product Manager (SaaS, US market)", "Компания: Стартап.",
+             "Формат работы: удалённо")
+    assert j.company is None
+
+
+def test_role_after_slash_is_not_a_company():
+    j = post("Вакансия: Руководитель VPN-проекта / Product Lead", "Формат работы: удалённо")
+    assert j.company is None
+
+
+def test_country_without_limit_word_restricts():
+    j = post("Системный аналитик (DWH)", "Удаленный РФ", tags="#вакансия #удаленка")
+    assert j.countries == ["RU"] and hidden(j) == "restricted"
+    j = post("Senior DevOps Engineer", "РФ", "Ищем Devops на аутстафф проект нашего партнера",
+             tags="#вакансия")
+    assert j.countries == ["RU"]
+
+
+def test_excluded_countries_are_not_a_limit():
+    j = post("Lead Business Analyst в Tech Company (ERP/Odoo)",
+             "Формат: удаленно (кроме РФ и РБ) / офис (Варшава)", "Компания: Tech Company")
+    assert j.countries == [] and hidden(j) is None
+
+
+def test_office_country_is_not_a_limit():
+    j = post("Python Developer", "Удалённо из любой точки мира, офис в Армении", tags="#вакансия")
+    assert j.countries == [] and j.remote_scope == "worldwide"
+
+
+def test_european_list_restricted():
+    j = post("Analytics Engineer (Regulatory Reporting) / Finom",
+             "Europe, Poland, Spain, Cyprus (Remote)", tags="#sql")
+    assert hidden(j) == "restricted"
+    j = post("Machine Learning Engineer / Acme",
+             "Europe, Uzbekistan, Poland, Kazakhstan, Armenia (Remote)", tags="#ml")
+    assert hidden(j) is None
+
+
+def test_locations_field_counts():
+    j = post("Вакансия: Python Developer", "Локации: удалённо, только Россия")
+    assert j.countries == ["RU"]
+
+
+def test_fetch_counts_posts_looked_at():
+    SRC.fetch(client(lambda r: httpx.Response(200, text=PAGE)), set(), lambda j: True,
+              {"tg_channels": ["testjobs"], "max_pages": 1})
+    assert SRC.last_items == 16  # text posts on the page; the photo-only one is not counted

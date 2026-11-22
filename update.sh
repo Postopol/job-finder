@@ -29,6 +29,12 @@ fi
 say "Обновляю зависимости"
 uv sync --project "$DIR" --no-dev
 
+if [ -f "$DIR/data/jobs.db" ]; then
+  say "Пересчитываю собранные вакансии по новым правилам"
+  uv run --project "$DIR" --no-dev jobfinder reparse \
+    || echo "Пересчёт не удался. Повтори вручную: jobfinder reparse"
+fi
+
 say "Обновлено: $old → $new"
 git -C "$DIR" log --oneline "$old..$new" | sed 's/^/  /'
 echo "Если сервер запущен, перезапусти его: Ctrl+C и снова jobfinder serve"
