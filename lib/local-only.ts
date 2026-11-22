@@ -1,6 +1,6 @@
 /**
  * Resume Studio is a single-user local app: only this computer may talk to it.
- * Shared by proxy.ts (every API/print request) and the PDF route (print origin).
+ * Used by proxy.ts (every API/print request) and the PDF route (print origin).
  */
 
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
@@ -13,15 +13,4 @@ export function isLoopbackHost(host: string | null | undefined): boolean {
     ? value.slice(0, value.indexOf("]") + 1)
     : value.replace(/:\d+$/, "");
   return LOOPBACK_HOSTS.has(name);
-}
-
-/** An Origin header value that points at this computer ("http://localhost:3000"). */
-export function isLoopbackOrigin(origin: string | null | undefined): boolean {
-  if (!origin) return false;
-  try {
-    const url = new URL(origin);
-    return (url.protocol === "http:" || url.protocol === "https:") && isLoopbackHost(url.host);
-  } catch {
-    return false;
-  }
 }
