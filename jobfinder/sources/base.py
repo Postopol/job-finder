@@ -24,6 +24,9 @@ class Source(ABC):
     full_listing: bool
     method: str  # «Открытый API», «RSS», «JSON сайта», «Страница сайта»
     detail_pages: bool = False  # descriptions of new jobs are loaded from detail pages
+    # set by fetch(): how many items (posts, comments) it looked at, when that differs from
+    # the jobs returned; 0 means «nothing to look at this time» (no «found nothing» warning)
+    last_items: int | None = None
 
     @abstractmethod
     def parse_item(self, item: dict) -> Job | None: ...

@@ -221,3 +221,25 @@ def test_compatible_row_found_among_same_key(conn, now):
     c, new = upsert_job(conn, mk(source="habr", source_id="3", title="Python Developer (Senior)"),
                         None, now)
     assert not new and c == b
+
+
+def test_source_quality_counts_active_jobs(conn, now):
+    from jobfinder.db import source_quality
+    upsert_job(conn, mk(source_id="a", title="Go Developer", salary_min=100, salary_currency="USD",
+                        salary_period="month"), None, now)
+    upsert_job(conn, mk(source_id="b", title="Rust Developer", stack=["Rust"]), None, now)
+    upsert_job(conn, mk(source_id="c", title="Senior QA", seniority="senior"), "office", now)
+    old, _ = upsert_job(conn, mk(source_id="d", title="Old Job"), None, now)
+    conn.execute("UPDATE jobs SET archived_at=? WHERE id=?", (now.isoformat(), old))
+    q = source_quality(conn)["s1"]
+    assert q == {"total": 3, "no_salary": 67, "no_stack": 67, "no_level": 67}
+
+
+def test_finish_run_stores_items_and_recent_max(conn, now):
+    from jobfinder.db import recent_max_fetched
+    for fetched in (40, 55, 0):
+        run = start_run(conn, "s1", now)
+        finish_run(conn, run, True, fetched, 0, None, now, items=140)
+    assert last_runs(conn)["s1"]["items"] == 140
+    assert recent_max_fetched(conn, "s1") == 55  # the last run itself is not counted
+    assert recent_max_fetched(conn, "nope") == 0

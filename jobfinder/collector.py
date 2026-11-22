@@ -145,6 +145,7 @@ def collect(conn, sources: dict[str, Source] | None = None,
 def _run_one(conn, source: Source, name: str, now_fn, client_factory) -> RunResult:
     run_id = db.start_run(conn, name, now_fn())
     fetched = new = skipped = requests = banned = 0
+    items: int | None = None
     error: str | None = None
     note: str | None = None  # stored in runs.error of a successful run
     client = None
@@ -163,7 +164,9 @@ def _run_one(conn, source: Source, name: str, now_fn, client_factory) -> RunResu
                 return False
             return not (use_halal and halal.banned_reason(probe))  # no detail page for haram
 
+        source.last_items = None
         jobs = source.fetch(client, db.known_source_ids(conn, name) | dropped, wants, settings)
+        items = source.last_items
         fetched = len(jobs)
         for job in jobs:
             if not job.title or not job.url:
@@ -204,5 +207,5 @@ def _run_one(conn, source: Source, name: str, now_fn, client_factory) -> RunResu
                 log.warning("%s: ошибка закрытия клиента", name, exc_info=True)
     ok = error is None
     db.finish_run(conn, run_id, ok, fetched, new, error or note, now_fn(), skipped=skipped,
-                  banned=banned)
+                  banned=banned, items=items)
     return RunResult(name, ok, fetched, new, skipped, requests, error or note, banned)

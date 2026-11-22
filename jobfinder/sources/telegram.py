@@ -309,6 +309,7 @@ class Telegram(Source):
             ids = [i["id"] for i in items]
             if not items or (before is not None and min(ids) >= before):
                 break
+            self.last_items = (self.last_items or 0) + len(items)
             out.extend(j for j in map(self.parse_item, items) if j is not None)
             before = min(ids)
             if before <= newest_known + 1 or before <= 1:
@@ -316,6 +317,7 @@ class Telegram(Source):
         return out
 
     def fetch(self, client: PoliteClient, known: set[str], wants, settings: dict) -> list[Job]:
+        self.last_items = 0
         channels = [c for c in (channel_name(n) for n in settings.get("tg_channels") or []) if c]
         pages = max(1, min(int(settings.get("max_pages") or MAX_PAGES), MAX_PAGES))
         out: list[Job] = []

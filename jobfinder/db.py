@@ -123,6 +123,8 @@ _ADDED_COLUMNS = [
     ("runs", "banned", "INTEGER NOT NULL DEFAULT 0"),
     # 1 = description from a detail page, 0 = from the listing, NULL = stored before tracking
     ("jobs", "description_detail", "INTEGER"),
+    # items the source looked at (Telegram: text posts); NULL when the source does not count
+    ("runs", "items", "INTEGER"),
 ]
 
 
@@ -391,11 +393,34 @@ def start_run(conn: sqlite3.Connection, source: str, now: datetime) -> int:
 
 
 def finish_run(conn: sqlite3.Connection, run_id: int, ok: bool, fetched: int, new: int,
-               error: str | None, now: datetime, skipped: int = 0, banned: int = 0) -> None:
+               error: str | None, now: datetime, skipped: int = 0, banned: int = 0,
+               items: int | None = None) -> None:
     with _tx(conn):
         conn.execute(
-            "UPDATE runs SET finished_at=?, ok=?, fetched=?, new=?, error=?, skipped=?, banned=? "
-            "WHERE id=?", (_iso(now), int(ok), fetched, new, error, skipped, banned, run_id))
+            "UPDATE runs SET finished_at=?, ok=?, fetched=?, new=?, error=?, skipped=?, banned=?, "
+            "items=? WHERE id=?",
+            (_iso(now), int(ok), fetched, new, error, skipped, banned, items, run_id))
+
+
+def recent_max_fetched(conn: sqlite3.Connection, source: str, runs: int = 5) -> int:
+    """Most jobs a source returned in its last `runs` successful runs before the latest one."""
+    row = conn.execute(
+        "SELECT MAX(fetched) FROM (SELECT fetched FROM runs WHERE source=? AND ok=1 "
+        "AND id < (SELECT MAX(id) FROM runs WHERE source=?) ORDER BY id DESC LIMIT ?)",
+        (source, source, runs)).fetchone()
+    return row[0] or 0
+
+
+def source_quality(conn: sqlite3.Connection) -> dict[str, dict]:
+    """Per source (primary) over active jobs: total and % without salary, stack, level."""
+    rows = conn.execute(
+        "SELECT source_primary, COUNT(*), "
+        "SUM(salary_min IS NULL AND salary_max IS NULL), "
+        "SUM(stack IS NULL OR stack = '[]'), SUM(seniority IS NULL) "
+        "FROM jobs WHERE archived_at IS NULL GROUP BY source_primary").fetchall()
+    return {r[0]: {"total": r[1], "no_salary": round(100 * r[2] / r[1]),
+                   "no_stack": round(100 * r[3] / r[1]), "no_level": round(100 * r[4] / r[1])}
+            for r in rows}
 
 
 def last_runs(conn: sqlite3.Connection) -> dict[str, sqlite3.Row]:

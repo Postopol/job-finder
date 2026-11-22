@@ -410,3 +410,16 @@ def test_halal_filter_off_keeps_everything(conn):
     src = Recording("r", [mk(source="r", source_id="2", url="https://x/2", title="Designer (iGaming)")])
     res = run(conn, {"r": src})
     assert src.wanted == ["2"] and _count(conn) == 1 and res[0].banned == 0
+
+
+class Counting(Fixed):
+    def fetch(self, client, known, wants, settings):
+        self.last_items = 9
+        return list(self.jobs)
+
+
+def test_items_looked_at_are_stored(conn):
+    run(conn, {"cnt": Counting("cnt", [mk(source="cnt")]), "plain": Fixed("plain", [])})
+    runs = last_runs(conn)
+    assert runs["cnt"]["items"] == 9 and runs["cnt"]["fetched"] == 1
+    assert runs["plain"]["items"] is None

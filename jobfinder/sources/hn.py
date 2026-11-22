@@ -99,6 +99,7 @@ class HackerNews(Source):
         now = self._now()
         last = utc_from_iso(settings.get("hn_last_fetch"))
         if story == settings.get("hn_last_story") and last and now - last < REFRESH:
+            self.last_items = 0  # same thread, checked recently: nothing to look at
             return []
         url = COMMENTS_URL.format(id=story)
         payload = client.get(url).json()

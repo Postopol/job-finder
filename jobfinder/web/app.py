@@ -405,11 +405,14 @@ def _parse_iso(iso: str | None) -> datetime | None:
 
 
 def _source_row(name: str, run: sqlite3.Row | None, disabled: set[str],
-                now: datetime) -> dict:
+                now: datetime, quality: dict | None = None, previous_max: int = 0) -> dict:
     src = REGISTRY[name]
     row = {"name": name, "label": source_label(name), "lang": (src.lang or "").upper(),
            "method": src.method, "on": name not in disabled, "last": "—", "new": "—",
-           "skipped": 0, "banned": 0}
+           "skipped": 0, "banned": 0, "quality": "", "parsed": ""}
+    if quality and quality.get("total"):
+        row["quality"] = (f"без зарплаты {quality['no_salary']}% · без стека {quality['no_stack']}% · "
+                          f"без уровня {quality['no_level']}%")
     if run is not None:
         row["last"] = ago(run["finished_at"] or run["started_at"], now) or "—"
         if run["finished_at"]:
@@ -425,6 +428,13 @@ def _source_row(name: str, run: sqlite3.Row | None, disabled: set[str],
     elif run["ok"]:
         row["state"] = f"работает · {run['error']}" if run["error"] else "работает"
         row["tone"] = "ok"
+        if run["items"]:
+            row["parsed"] = f"разобрано {run['fetched'] or 0} из {run['items']}"
+        # a source that used to return jobs and now parsed none probably changed its format
+        if not run["fetched"] and run["items"] != 0 and previous_max:
+            row["state"] = (f"ничего не нашёл, раньше находил {previous_max} — "
+                            "возможно, сайт поменял формат")
+            row["tone"] = "warn"
     else:
         row["state"], row["tone"] = run["error"] or "ошибка", "error"
     return row
@@ -433,7 +443,9 @@ def _source_row(name: str, run: sqlite3.Row | None, disabled: set[str],
 def _source_rows(conn: sqlite3.Connection, now: datetime) -> list[dict]:
     runs = db.last_runs(conn)
     disabled = set(db.get_setting(conn, "disabled_sources") or [])
-    return [_source_row(n, runs.get(n), disabled, now) for n in REGISTRY]
+    quality = db.source_quality(conn)
+    return [_source_row(n, runs.get(n), disabled, now, quality.get(n),
+                        db.recent_max_fetched(conn, n) if n in runs else 0) for n in REGISTRY]
 
 
 def _schedule_line(conn: sqlite3.Connection, sched, now: datetime) -> str:
@@ -640,7 +652,9 @@ def create_app(db_path: Path | str, start_scheduler: bool = True,
         disabled = [n for n in current if n != name] if name in current else [*current, name]
         db.set_setting(conn, "disabled_sources", disabled)
         now = datetime.now(UTC)
-        row = _source_row(name, db.last_runs(conn).get(name), set(disabled), now)
+        run = db.last_runs(conn).get(name)
+        row = _source_row(name, run, set(disabled), now, db.source_quality(conn).get(name),
+                          db.recent_max_fetched(conn, name) if run else 0)
         return templates.TemplateResponse(request, "_source_row.html", {"s": row})
 
     @app.post("/settings", response_class=HTMLResponse,

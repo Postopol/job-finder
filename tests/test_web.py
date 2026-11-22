@@ -584,3 +584,39 @@ def test_tg_channels_setting(client, conn):
     assert get_setting(conn, "tg_channels") == ["opento_dev", "jobforqa"]  # unchanged on error
     client.post("/settings", data={"tg_channels_sent": "1"})  # emptied field
     assert get_setting(conn, "tg_channels") == []
+
+
+def test_sources_page_shows_data_quality(client, conn):
+    seed(conn, source="remoteok", title="Go Developer")
+    seed(conn, source="remoteok", title="Rust Developer", stack=["Rust"], seniority="senior")
+    html = client.get("/sources").text
+    assert "без зарплаты 100%" in html and "без стека 50%" in html and "без уровня 50%" in html
+
+
+def test_sources_page_shows_parse_ratio(client, conn):
+    now = datetime.now(UTC)
+    run = start_run(conn, "telegram", now)
+    finish_run(conn, run, True, 79, 70, None, now, items=140)
+    assert "разобрано 79 из 140" in client.get("/sources").text
+
+
+def test_sources_page_warns_when_source_suddenly_finds_nothing(client, conn):
+    now = datetime.now(UTC)
+    for fetched in (40, 0):
+        run = start_run(conn, "remoteok", now)
+        finish_run(conn, run, True, fetched, 0, None, now)
+    html = client.get("/sources").text
+    assert "ничего не нашёл, раньше находил 40" in html and "state--warn" in html
+
+
+def test_no_warning_when_source_had_nothing_to_look_at(client, conn):
+    now = datetime.now(UTC)
+    for fetched, items in ((40, None), (0, 0)):  # HN between monthly threads
+        run = start_run(conn, "hn", now)
+        finish_run(conn, run, True, fetched, 0, None, now, items=items)
+    assert "ничего не нашёл" not in client.get("/sources").text
+
+
+def test_toggle_keeps_quality_line(client, conn):
+    seed(conn, source="remoteok", title="Go Developer")
+    assert "без зарплаты 100%" in client.post("/sources/remoteok/toggle").text
