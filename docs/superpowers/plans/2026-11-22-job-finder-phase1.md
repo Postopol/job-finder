@@ -20,7 +20,7 @@
 - Collection interval default 6 h; archive rule 7 days; raw purge 90 days; feed freshness default 3 days.
 - User country default `KZ`; visible scopes: `worldwide`, `cis`, `countries` containing the user country, `unknown` (marked «уточнить»); `restricted` hidden.
 - Statuses: `new`, `seen`, `interesting`, `applied`, `rejected`. Triage «позже» = `seen`.
-- UI language Russian; style = qymyz.dev night theme (square corners, Bitcount Prop Single for labels/headings, Mona Sans for text, violet `#a970ff` primary, canvas `#0b0a0e`); see mockups canvas https://claude.ai/artifact/YK213a4gqPXh9byfAgxoey (boards A, C, D).
+- UI language Russian; style = qymyz.dev night theme (square corners, Bitcount Prop Single for labels/headings, Mona Sans for text, violet `#a970ff` primary, canvas `#0b0a0e`); see mockups (boards A, C, D).
 - Every vacancy shows a link to its original (RemoteOK/Jobicy/Remote First Jobs requirement).
 - Tests never hit the network; live checks only via `jobfinder check-sources`.
 - **Deviation from spec, decided here:** user-editable settings live in a `settings` table (defaults in code), not in `config.toml` — screen D edits them; no config file is needed.
