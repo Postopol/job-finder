@@ -111,3 +111,53 @@ def test_russian_period_forms(text, period):
 ])
 def test_detect_seniority_from_experience(title, text, expected):
     assert detect_seniority(title, text) == expected
+
+
+# ---- salary hidden in the description text
+
+from jobfinder.models import Job  # noqa: E402
+from jobfinder.normalize import normalize_job, salary_from_text  # noqa: E402
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("Salary Range: $85,389 - $116,975 If you have previously applied", (85389, 116975, "USD", "year")),
+    ("The annual base salary range for this full-time position is $75,000 to $115,000.",
+     (75000, 115000, "USD", "year")),
+    ("expected to be between $121,800 and $162,400 per year.", (121800, 162400, "USD", "year")),
+    ("$150K to $240K base plus equity.", (150000, 240000, "USD", "year")),
+    ("| Full-time | $110K–$140K + equity |", (110000, 140000, "USD", "year")),
+    ("We offer a pay range of $70 - $100per hour, with the exact rate", (70, 100, "USD", "hour")),
+    ("Pay: $60–$120/hour Location: Global", (60, 120, "USD", "hour")),
+    ("Salary range for this position is $95,000.00 - $120,000.00 per year annually.",
+     (95000, 120000, "USD", "year")),
+    ("Chief Operating Officer, $180–250k - Director", (180000, 250000, "USD", "year")),
+    ("Compensation: €4,000 per month", (4000, None, "EUR", "month")),
+])
+def test_salary_from_text(text, expected):
+    sal = parse_salary(salary_from_text(text))
+    assert (sal.min, sal.max, sal.currency, sal.period) == expected
+
+
+@pytest.mark.parametrize("text", [
+    "receive a monthly home internet reimbursement, and $500 USD to customize your workstation",
+    "Grow your career with $1500 USD annually for professional development",
+    "GPS will contribute ($850 per EE annually / $1750 per family annually",
+    "We raised $10M from top investors and process $10 billion a year",
+    "We offer a pay range of $6 to $9 with flexible hours",  # no unit, too small for a month
+    "No numbers here at all",
+    "",
+])
+def test_salary_from_text_ignores_non_salary_money(text):
+    assert parse_salary(salary_from_text(text)) is None
+
+
+def test_normalize_fills_salary_from_description():
+    job = normalize_job(Job(source="s", source_id="1", url="u", title="Engineer",
+                            description_text="Benefits. Salary Range: $85,000 - $100,000"))
+    assert (job.salary_min, job.salary_max, job.salary_currency) == (85000, 100000, "USD")
+    assert job.salary_raw == "$85,000 - $100,000"
+
+    given = normalize_job(Job(source="s", source_id="2", url="u", title="Engineer",
+                              salary_raw="$5,000 per month",
+                              description_text="Salary Range: $85,000 - $100,000"))
+    assert given.salary_min == 5000  # the source's own salary wins

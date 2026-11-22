@@ -90,6 +90,48 @@ def _parse_salary(text: str | None) -> Salary | None:
     return Salary(lo, hi, currency, period)
 
 
+# --------------------------------------------- salary inside the description
+
+# One amount with a currency sign: «$85,389», «$150K», «€4,000», «$95,000.00»; not «$10M».
+_AMOUNT = r"[$€£]\s?\d[\d,]*(?:\.\d{1,2})?\s?[kK]?(?![\d,]*\s?(?:[mMbB]\b|million|billion|bn\b))"
+_BARE = r"\d[\d,]*(?:\.\d{1,2})?\s?[kK]?"  # second end of «$180–250k»
+_UNIT = (r"(?:\s?(?:usd|eur|gbp))?(?:\s?(?:/\s?(?:yr|year|hr|hour|h|mo|month)\b|per\s+(?:year|annum|hour|month)"
+         r"|a\s+year|an\s+hour|annually|hourly|monthly))?")
+_SEP = r"\s?(?:-|–|—|to|-to-|and)\s?"
+_RANGE = re.compile(rf"(?:{_AMOUNT}){_UNIT}{_SEP}(?:{_AMOUNT}|{_BARE}){_UNIT}", re.I)
+_SINGLE = re.compile(rf"{_AMOUNT}{_UNIT}", re.I)
+_SALARY_WORDS = re.compile(r"(?<!\w)(?:salary|compensation|pay|base|rate|ote|wage|earnings|"
+                           r"зарплат\w*|оклад\w*|вилка)(?!\w)", re.I)
+_CENTS = re.compile(r"(\d{1,3}(?:,\d{3})+)\.\d{1,2}(?!\d)")
+# a sane salary per period, in the currency's units (filters «$6 to $9» and benefits)
+_SANE = {"year": (10_000, 2_000_000), "month": (500, 100_000), "hour": (5, 1_000)}
+
+
+def _sane(snippet: str) -> bool:
+    sal = parse_salary(snippet)
+    if sal is None:
+        return False
+    lo, hi = _SANE[sal.period]
+    return all(lo <= v <= hi for v in (sal.min, sal.max) if v is not None)
+
+
+def salary_from_text(text: str | None) -> str | None:
+    """The first salary written inside a description: «Salary Range: $85,389 - $116,975» →
+    «$85,389 - $116,975». A range counts anywhere; a single amount only right after a salary
+    word («Compensation: €4,000 per month»), so benefits like «$500 for your workstation» don't."""
+    text = text or ""
+    for m in _RANGE.finditer(text):
+        snippet = _CENTS.sub(r"\1", m.group(0).strip())
+        if _sane(snippet):
+            return snippet
+    for m in _SINGLE.finditer(text):
+        if _SALARY_WORDS.search(text[max(0, m.start() - 40):m.start()]):
+            snippet = _CENTS.sub(r"\1", m.group(0).strip())
+            if _sane(snippet):
+                return snippet
+    return None
+
+
 # ------------------------------------------------------------- seniority
 
 _LEAD = re.compile(
@@ -248,6 +290,8 @@ def html_to_text(html: str) -> str:
 def normalize_job(job: Job) -> Job:
     if not job.description_text and job.description_html:
         job.description_text = html_to_text(job.description_html)
+    if job.salary_min is None and job.salary_max is None and not job.salary_raw:
+        job.salary_raw = salary_from_text(job.description_text)
     if job.salary_min is None and job.salary_max is None and job.salary_raw:
         sal = parse_salary(job.salary_raw)
         if sal:
