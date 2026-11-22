@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from . import db, halal
 from .collector import _prepare
 from .dedup import compatible
-from .filters import FilterConfig, stopword_reason
+from .filters import FilterConfig, hidden_reason, stopword_reason
 from .models import Job
 from .sources import REGISTRY
 from .sources.base import Source
@@ -167,6 +167,29 @@ def reapply_stopwords(conn, stopwords: list[str] | None = None) -> int:
     return len(changes)
 
 
+def recheck_unparsed(conn, cfg: FilterConfig, done: set[int]) -> int:
+    """Visible jobs reparse could not rebuild (the source now skips the item, raw is gone):
+    run the current filters on the stored fields and hide what they catch."""
+    rows = conn.execute("SELECT * FROM jobs WHERE archived_at IS NULL AND hidden_reason IS NULL"
+                        ).fetchall()
+    changes = []
+    for r in rows:
+        if r["id"] in done:
+            continue
+        job = Job(source=r["source_primary"], source_id="", url=r["url"] or "", title=r["title"],
+                  company=r["company"], location_raw=r["location_raw"],
+                  work_format=r["work_format"], remote_scope=r["remote_scope"] or "unknown",
+                  countries=json.loads(r["countries"] or "[]"),
+                  description_text=r["description_text"] or "")
+        reason = hidden_reason(job, cfg)
+        if reason is not None:
+            changes.append((reason, r["id"]))
+    if changes:
+        with db._tx(conn):
+            conn.executemany("UPDATE jobs SET hidden_reason=? WHERE id=?", changes)
+    return len(changes)
+
+
 def _split_groups(parsed: list[tuple[int, Job]]) -> list[list[tuple[int, Job]]]:
     """Postings of one job grouped by compatible titles; the primary's group comes first."""
     groups: list[list[tuple[int, Job]]] = []
@@ -195,6 +218,7 @@ def reparse(conn, source: str | None = None, sources: dict[str, Source] | None =
                           args).fetchall():
         by_job.setdefault(r["job_id"], []).append(r)
     count = 0
+    done: set[int] = set()
     for job_id, posts in by_job.items():
         try:
             parsed: list[tuple[int, Job]] = []
@@ -214,6 +238,7 @@ def reparse(conn, source: str | None = None, sources: dict[str, Source] | None =
                              _prepare(merged, cfg))
                 count += 1
             parsed = [j for _, j in groups[0]]
+            done.add(job_id)
             merged = _merge(parsed)
             old = db.get_job(conn, job_id)
             job_sources = [p[0] for p in conn.execute(
@@ -229,4 +254,5 @@ def reparse(conn, source: str | None = None, sources: dict[str, Source] | None =
             log.warning("reparse: не удалось обработать вакансию %s", job_id, exc_info=True)
     # jobs without raw (or with a parser error) still get the current stopwords
     reapply_stopwords(conn, cfg.stopwords)
+    recheck_unparsed(conn, cfg, done)
     return count

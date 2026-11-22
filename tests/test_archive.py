@@ -359,3 +359,13 @@ def test_reparse_splits_wrongly_merged_postings(conn, now):
     assert moved["status"] == "new" and moved["url"] == "https://x/2"
     assert db.get_status(conn, jid) == "interesting"
     assert conn.execute("SELECT COUNT(*) FROM jobs_fts").fetchone()[0] == 2
+
+
+def test_reparse_hides_jobs_the_source_no_longer_parses(conn, now):
+    jid, _ = db.upsert_job(conn, mk(title="Оператор call-центра", raw={"id": 1, "skip": True}),
+                           None, now)
+    keep, _ = db.upsert_job(conn, mk(source_id="2", url="https://x/2", title="Go Developer",
+                                     raw={"id": 2, "skip": True}), None, now)
+    archive.reparse(conn, None, {"s1": FakeSource("s1")})
+    assert db.get_job(conn, jid)["hidden_reason"] == "non_it"
+    assert db.get_job(conn, keep)["hidden_reason"] is None
