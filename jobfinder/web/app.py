@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import threading
 from collections.abc import Iterator
@@ -20,7 +21,7 @@ from markupsafe import Markup, escape
 from .. import archive, collector, db, halal, scheduler
 from ..models import STATUSES
 from ..search import SECTIONS, SearchParams, count_sections, search_jobs
-from ..sources import REGISTRY
+from ..sources import REGISTRY, telegram
 
 HERE = Path(__file__).parent
 LIST_LIMIT = 200
@@ -31,7 +32,7 @@ SOURCE_LABELS = {
     "workingnomads": "Working Nomads", "wwr": "We Work Remotely",
     "remotefirst": "Remote First Jobs", "hn": "HN Who is hiring", "arc": "Arc",
     "rocketship": "Rocketship", "hirify": "Hirify", "hh": "hh.ru", "habr": "Хабр Карьера",
-    "getmatch": "Getmatch",
+    "getmatch": "Getmatch", "telegram": "Telegram",
 }
 SECTION_LABELS = {"feed": "Лента", "mine": "Мои", "archive": "Архив", "hidden": "Скрытые"}
 SCOPE_OPTIONS = [("worldwide", "Весь мир"), ("cis", "СНГ"),
@@ -472,6 +473,17 @@ def parse_settings_form(form: dict[str, str | None]) -> tuple[dict, list[str]]:
     if form.get("stopwords") is not None:
         words = form["stopwords"].replace("\n", ",").split(",")
         changes["stopwords"] = list(dict.fromkeys(w.strip() for w in words if w.strip()))
+    if form.get("tg_channels") is not None:
+        names: list[str] = []
+        for raw in re.split(r"[\s,]+", form["tg_channels"]):
+            if not raw:
+                continue
+            name = telegram.channel_name(raw)
+            if name is None:
+                errors.append(f"Не понял канал «{raw}»: нужно имя вроде opento_dev или ссылка t.me/opento_dev")
+            elif name not in names:
+                names.append(name)
+        changes["tg_channels"] = names
     if form.get("halal_sent"):  # an unticked checkbox sends nothing, the marker always comes
         changes["halal"] = bool(form.get("halal"))
     token = (form.get("hh_token") or "").strip()
@@ -486,7 +498,8 @@ def _settings_context(conn: sqlite3.Connection, form: dict | None = None,
                       errors: list[str] | None = None, saved: bool = False) -> dict:
     s = db.all_settings(conn)
     values = {"interval_hours": str(s["interval_hours"]), "fresh_days": str(s["fresh_days"]),
-              "stopwords": ", ".join(s["stopwords"] or [])}
+              "stopwords": ", ".join(s["stopwords"] or []),
+              "tg_channels": "\n".join(s.get("tg_channels") or [])}
     for key in values:  # on error, show what the user typed so it can be fixed
         if form and form.get(key) is not None:
             values[key] = form[key]
@@ -638,12 +651,16 @@ def create_app(db_path: Path | str, start_scheduler: bool = True,
                       hh_token: str | None = Form(None), hh_token_clear: str | None = Form(None),
                       halal_on: str | None = Form(None, alias="halal"),
                       halal_sent: str | None = Form(None),
+                      tg_channels: str | None = Form(None),
+                      tg_channels_sent: str | None = Form(None),
                       conn: sqlite3.Connection = Depends(get_conn)):
         if stopwords is None and stopwords_sent:  # FastAPI turns an empty field into None
             stopwords = ""
+        if tg_channels is None and tg_channels_sent:
+            tg_channels = ""
         form = {"interval_hours": interval_hours, "fresh_days": fresh_days,
                 "stopwords": stopwords, "hh_token": hh_token, "hh_token_clear": hh_token_clear,
-                "halal": halal_on, "halal_sent": halal_sent}
+                "halal": halal_on, "halal_sent": halal_sent, "tg_channels": tg_channels}
         changes, errors = parse_settings_form(form)
         htmx = "hx-request" in request.headers
         if errors:

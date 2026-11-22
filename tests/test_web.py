@@ -571,3 +571,16 @@ def test_halal_setting_toggle(client, conn):
     client.post("/settings", data={"halal_sent": "1", "halal": "1"})
     assert get_setting(conn, "halal") is True
     assert get_job(conn, jid) is None
+
+
+def test_tg_channels_setting(client, conn):
+    assert "opento_dev" in client.get("/sources").text  # default list shown in the form
+    r = client.post("/settings", data={"tg_channels": "@opento_dev\nhttps://t.me/s/jobforqa, opento_dev",
+                                       "tg_channels_sent": "1"})
+    assert r.status_code == 200
+    assert get_setting(conn, "tg_channels") == ["opento_dev", "jobforqa"]
+    r = client.post("/settings", data={"tg_channels": "jobforqa\nплохое имя", "tg_channels_sent": "1"})
+    assert r.status_code == 422 and "Не понял канал" in r.text
+    assert get_setting(conn, "tg_channels") == ["opento_dev", "jobforqa"]  # unchanged on error
+    client.post("/settings", data={"tg_channels_sent": "1"})  # emptied field
+    assert get_setting(conn, "tg_channels") == []
