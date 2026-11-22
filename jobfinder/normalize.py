@@ -93,8 +93,11 @@ def _parse_salary(text: str | None) -> Salary | None:
 # --------------------------------------------- salary inside the description
 
 # One amount with a currency sign: «$85,389», «$150K», «€4,000», «$95,000.00»; not «$10M».
-_AMOUNT = r"[$€£]\s?\d[\d,]*(?:\.\d{1,2})?\s?[kK]?(?![\d,]*\s?(?:[mMbB]\b|million|billion|bn\b))"
-_BARE = r"\d[\d,]*(?:\.\d{1,2})?\s?[kK]?"  # second end of «$180–250k»
+# Digit runs are bounded and unambiguous (no nested repeats): descriptions come from other
+# sites, and «$1,1,1,1,…» must not make the regex backtrack for seconds.
+_NUM = r"(?:\d{1,3}(?:,\d{3}){1,4}|\d{1,9})(?![\d,]\d)(?:\.\d{1,2})?"
+_AMOUNT = rf"[$€£]\s?{_NUM}\s?[kK]?(?!\s?(?:[mMbB]\b|million|billion|bn\b))"
+_BARE = rf"{_NUM}\s?[kK]?"  # second end of «$180–250k»
 _UNIT = (r"(?:\s?(?:usd|eur|gbp))?(?:\s?(?:/\s?(?:yr|year|hr|hour|h|mo|month)\b|per\s+(?:year|annum|hour|month)"
          r"|a\s+year|an\s+hour|annually|hourly|monthly))?")
 _SEP = r"\s?(?:-|–|—|to|-to-|and)\s?"
@@ -103,6 +106,7 @@ _SINGLE = re.compile(rf"{_AMOUNT}{_UNIT}", re.I)
 _SALARY_WORDS = re.compile(r"(?<!\w)(?:salary|compensation|pay|base|rate|ote|wage|earnings|"
                            r"зарплат\w*|оклад\w*|вилка)(?!\w)", re.I)
 _CENTS = re.compile(r"(\d{1,3}(?:,\d{3})+)\.\d{1,2}(?!\d)")
+MAX_SALARY_SCAN = 30_000  # characters of a description searched for a salary
 # a sane salary per period, in the currency's units (filters «$6 to $9» and benefits)
 _SANE = {"year": (10_000, 2_000_000), "month": (500, 100_000), "hour": (5, 1_000)}
 
@@ -119,7 +123,7 @@ def salary_from_text(text: str | None) -> str | None:
     """The first salary written inside a description: «Salary Range: $85,389 - $116,975» →
     «$85,389 - $116,975». A range counts anywhere; a single amount only right after a salary
     word («Compensation: €4,000 per month»), so benefits like «$500 for your workstation» don't."""
-    text = text or ""
+    text = (text or "")[:MAX_SALARY_SCAN]
     for m in _RANGE.finditer(text):
         snippet = _CENTS.sub(r"\1", m.group(0).strip())
         if _sane(snippet):

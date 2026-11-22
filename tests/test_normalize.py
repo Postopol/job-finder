@@ -161,3 +161,11 @@ def test_normalize_fills_salary_from_description():
                               salary_raw="$5,000 per month",
                               description_text="Salary Range: $85,000 - $100,000"))
     assert given.salary_min == 5000  # the source's own salary wins
+
+
+def test_salary_from_text_is_fast_on_hostile_text():
+    import time
+    start = time.monotonic()
+    for text in ("$" + "1," * 20000 + "x", "$1 - " * 5000, "$" + "1" * 9000 + " to $" + "1," * 5000):
+        salary_from_text(text)
+    assert time.monotonic() - start < 1.0
