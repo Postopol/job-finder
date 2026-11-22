@@ -29,8 +29,6 @@
   {% else %}
   <span class="qz-btn qz-btn--outline" aria-disabled="true">{{ d.primary.label }}: ссылки на оригинал нет</span>
   {% endif %}
-  <span class="qz-btn qz-btn--outline fits-me" aria-disabled="true"
-        title="Скоро: сравним вакансию с твоим резюме и подскажем, что подтянуть">Подходит мне · скоро</span>
   <details class="dropdown">
     <summary class="qz-btn qz-btn--outline">Найти отзывы о компании</summary>
     <div class="dropdown__menu">
@@ -39,6 +37,8 @@
       {% endfor %}
     </div>
   </details>
+  <span class="qz-btn qz-btn--outline fits-me" aria-disabled="true"
+        title="Скоро: сравним вакансию с твоим резюме и подскажем, что подтянуть">Подходит мне · скоро</span>
 </div>
 {% if d.others %}
 <p class="also small mute">Также опубликовано:

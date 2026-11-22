@@ -16,6 +16,7 @@
     <span class="job-item__company">{% if it.company %}{{ it.company }} · {% endif %}<span class="ink">{{ it.salary_label }}</span></span>
     <span class="job-item__meta">
       <span class="status status--{{ it.status }}"><span class="dot" aria-hidden="true"></span>{{ it.status_label }}</span>
+      {% if it.seniority %}<span>·</span><span>{{ it.seniority|capitalize }}</span>{% endif %}
       <span>·</span><span>{{ it.source_label }}</span><span>·</span><span>{{ it.scope_label }}</span>
       {% if f.section == 'hidden' and it.hidden_label %}<span>·</span><span class="reason">скрыто: {{ it.hidden_label }}</span>{% endif %}
     </span>

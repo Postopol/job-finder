@@ -108,7 +108,7 @@ class SearchParams:
 
 _COLS = ("id, title, company, salary_raw, salary_min, salary_max, salary_currency, "
          "salary_period, remote_scope, location_raw, source_primary, lang, first_seen_at, "
-         "COALESCE(s.status, 'new') AS status, hidden_reason")
+         "COALESCE(s.status, 'new') AS status, hidden_reason, seniority")
 _FROM = "FROM jobs j LEFT JOIN user_status s ON s.job_id = j.id"
 _REJECTED = "COALESCE(s.status, 'new') = 'rejected'"
 

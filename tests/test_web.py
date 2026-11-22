@@ -233,6 +233,7 @@ def test_level_filter_in_page(client, conn):
     assert "Уровень" in html and 'name="level" value="none"' in html
     r = client.get("/list", params={"level": "senior"})
     assert "Senior Go Dev" in r.text and "Mystery Dev" not in r.text
+    assert "<span>Senior</span>" in r.text  # level shown in the list item
     assert "level=senior" in r.headers["HX-Replace-Url"]
     r = client.get("/list", params={"level": ["", "none"]}).text
     assert "Mystery Dev" in r and "Senior Go Dev" not in r
