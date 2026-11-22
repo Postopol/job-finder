@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from . import search
-from .dedup import dedup_key
+from .dedup import compatible, dedup_key
 from .models import STATUSES, Job
 
 DEFAULT_SETTINGS = {
@@ -243,10 +243,10 @@ def upsert_job(conn: sqlite3.Connection, job: Job, hidden_reason: str | None,
         key = dedup_key(job.company, job.title)
         if job_id is None and (job.company or "").strip():
             cutoff = _iso(now - timedelta(days=MERGE_WINDOW_DAYS))
-            row = conn.execute(
-                "SELECT id FROM jobs WHERE dedup_key=? AND last_seen_at>=? ORDER BY id LIMIT 1",
-                (key, cutoff)).fetchone()
-            job_id = row["id"] if row else None
+            rows = conn.execute(
+                "SELECT id, title FROM jobs WHERE dedup_key=? AND last_seen_at>=? ORDER BY id",
+                (key, cutoff)).fetchall()
+            job_id = next((r["id"] for r in rows if compatible(r["title"], job.title)), None)
         is_new = job_id is None
         if not is_new:
             _merge_stored(job, conn.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone())
@@ -312,6 +312,28 @@ def update_job_fields(conn: sqlite3.Connection, job_id: int, job: Job,
         conn.execute(f"UPDATE jobs SET {', '.join(f'{k}=?' for k in f)} WHERE id=?",
                      [*f.values(), job_id])
         search.index_job(conn, job_id)
+
+
+def split_off(conn: sqlite3.Connection, job_id: int, posting_ids: list[int], job: Job,
+              hidden_reason: str | None) -> int:
+    """Move postings that were merged into `job_id` by mistake to a new job built from
+    `job` (their merged parse). Status stays with the old job; dates come from the postings."""
+    marks = ",".join("?" * len(posting_ids))
+    with _tx(conn):
+        first = conn.execute(f"SELECT MIN(first_seen_at) AS fs, MAX(last_seen_at) AS ls "
+                             f"FROM postings WHERE id IN ({marks})", posting_ids).fetchone()
+        primary = conn.execute(f"SELECT source, url FROM postings WHERE id IN ({marks}) "
+                               f"ORDER BY id LIMIT 1", posting_ids).fetchone()
+        archived = conn.execute("SELECT archived_at FROM jobs WHERE id=?", (job_id,)).fetchone()[0]
+        cur = conn.execute(
+            "INSERT INTO jobs(dedup_key, source_primary, title, url, first_seen_at, last_seen_at, "
+            "archived_at) VALUES(?,?,?,?,?,?,?)",
+            (dedup_key(job.company, job.title), primary["source"], job.title, primary["url"],
+             first["fs"], first["ls"], archived))
+        new_id = cur.lastrowid
+        conn.execute(f"UPDATE postings SET job_id=? WHERE id IN ({marks})", [new_id, *posting_ids])
+        update_job_fields(conn, new_id, job, hidden_reason)
+    return new_id
 
 
 def banned_ids(conn: sqlite3.Connection, source: str) -> set[str]:

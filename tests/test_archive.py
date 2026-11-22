@@ -330,3 +330,32 @@ def test_purge_banned_removes_stored_banned_jobs_but_keeps_marked(conn, now):
     assert ids == {ok, kept}
     assert conn.execute("SELECT COUNT(*) FROM jobs_fts WHERE rowid=?", (bad,)).fetchone()[0] == 0
     assert db.banned_ids(conn, "s1") == {"2"}
+
+
+class TitledSource(FakeSource):
+    def parse_item(self, item):
+        job = super().parse_item(item)
+        job.title = item["title"]
+        return job
+
+
+def test_reparse_splits_wrongly_merged_postings(conn, now):
+    jid, _ = db.upsert_job(conn, mk(source="s1", source_id="1", title="Python Developer",
+                                    raw={"id": 1, "title": "Middle Python Developer"}), None, now)
+    db.upsert_job(conn, mk(source="s1", source_id="2", url="https://x/2", title="Python Developer",
+                           raw={"id": 2, "title": "Senior Python Developer"}),
+                  None, now + timedelta(hours=1))
+    db.upsert_job(conn, mk(source="s2", source_id="3", url="https://x/3", title="Python Developer",
+                           raw={"id": 3, "title": "Python Developer (Middle)"}), None, now)
+    db.set_status(conn, jid, "interesting", now)
+    srcs = {"s1": TitledSource("s1"), "s2": TitledSource("s2")}
+    assert archive.reparse(conn, None, srcs) == 2
+    jobs = conn.execute("SELECT id, title FROM jobs ORDER BY id").fetchall()
+    assert [r["title"] for r in jobs] == ["Middle Python Developer", "Senior Python Developer"]
+    new_id = jobs[1]["id"]
+    assert [p["source_id"] for p in conn.execute(
+        "SELECT source_id FROM postings WHERE job_id=? ORDER BY id", (jid,))] == ["1", "3"]
+    moved = db.get_job(conn, new_id)
+    assert moved["status"] == "new" and moved["url"] == "https://x/2"
+    assert db.get_status(conn, jid) == "interesting"
+    assert conn.execute("SELECT COUNT(*) FROM jobs_fts").fetchone()[0] == 2

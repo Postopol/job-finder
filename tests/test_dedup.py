@@ -21,3 +21,30 @@ def test_full_stack_keeps_full_but_fulltime_dropped():
     assert "full" in dedup_key("Acme", "Full Stack Developer")
     assert dedup_key("Acme", "Python Developer Full-time") == dedup_key("Acme", "Python Developer")
     assert dedup_key("Acme", "Python Developer full time") == dedup_key("Acme", "Python Developer")
+
+
+from jobfinder.dedup import compatible
+
+
+def test_different_levels_not_compatible():
+    assert not compatible("Middle Python Developer (Django)", "Senior Python Developer")
+    assert not compatible("Middle+ Python Developer", "Senior Python Developer")
+
+
+def test_level_on_one_side_only_is_compatible():
+    assert compatible("Senior Python Developer (Remote)", "Python Developer — remote")
+    assert compatible("System Analyst (Senior)", "Senior System Analyst")
+
+
+def test_different_bracket_qualifiers_not_compatible():
+    assert not compatible("Data Scientist (RAG-платформа)", "Data Scientist (Внутренние сервисы)")
+    assert not compatible("Старший разработчик Java (AI поисковый ассистент)",
+                          "Старший разработчик Java (Платформа стриминговой обработки)")
+
+
+def test_bracket_on_one_side_or_noise_brackets_compatible():
+    assert compatible("C++ Engineer", "C++ Engineer (HFT)")
+    assert compatible("Python Developer (Remote, Full-time)", "Python Developer")
+    # Latin «c» and Cyrillic «с» look the same
+    assert compatible("Python-разработчик (c желанием развиваться в Go)",
+                      "Python-разработчик (с желанием развиваться в Go)")

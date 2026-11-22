@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 from . import db, halal
 from .collector import _prepare
+from .dedup import compatible
 from .filters import FilterConfig, stopword_reason
 from .models import Job
 from .sources import REGISTRY
@@ -166,12 +167,24 @@ def reapply_stopwords(conn, stopwords: list[str] | None = None) -> int:
     return len(changes)
 
 
+def _split_groups(parsed: list[tuple[int, Job]]) -> list[list[tuple[int, Job]]]:
+    """Postings of one job grouped by compatible titles; the primary's group comes first."""
+    groups: list[list[tuple[int, Job]]] = []
+    for item in parsed:
+        group = next((g for g in groups if compatible(g[0][1].title, item[1].title)), None)
+        if group is None:
+            groups.append([item])
+        else:
+            group.append(item)
+    return groups
+
+
 def reparse(conn, source: str | None = None, sources: dict[str, Source] | None = None) -> int:
     """Re-parse saved raw with current parsers, no network. Returns updated jobs count."""
     sources = REGISTRY if sources is None else sources
     settings = db.all_settings(conn)
     cfg = FilterConfig(country=settings["country"], stopwords=settings["stopwords"])
-    query = ("SELECT p.job_id, p.source, p.raw FROM postings p JOIN jobs j ON j.id=p.job_id "
+    query = ("SELECT p.id, p.job_id, p.source, p.raw FROM postings p JOIN jobs j ON j.id=p.job_id "
              "WHERE p.raw IS NOT NULL")
     args: tuple = ()
     if source is not None:
@@ -184,16 +197,23 @@ def reparse(conn, source: str | None = None, sources: dict[str, Source] | None =
     count = 0
     for job_id, posts in by_job.items():
         try:
-            parsed = []
+            parsed: list[tuple[int, Job]] = []
             for r in posts:
                 src = sources.get(r["source"])
                 if src is None:
                     continue
                 job = src.parse_item(json.loads(zlib.decompress(r["raw"])))
                 if job is not None:
-                    parsed.append(job)
+                    parsed.append((r["id"], job))
             if not parsed:
                 continue
+            groups = _split_groups(parsed)
+            for group in groups[1:]:  # merged by mistake: each becomes its own job
+                merged = _merge([j for _, j in group])
+                db.split_off(conn, job_id, [pid for pid, _ in group], merged,
+                             _prepare(merged, cfg))
+                count += 1
+            parsed = [j for _, j in groups[0]]
             merged = _merge(parsed)
             old = db.get_job(conn, job_id)
             job_sources = [p[0] for p in conn.execute(

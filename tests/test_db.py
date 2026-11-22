@@ -206,3 +206,18 @@ def test_old_db_gets_description_detail_column(tmp_path):
     row = c.execute("SELECT description_detail FROM jobs").fetchone()
     assert row["description_detail"] is None  # unknown for rows stored before the flag
     c.close()
+
+
+def test_same_key_different_level_not_merged(conn, now):
+    a, _ = upsert_job(conn, mk(source="hh", source_id="1", title="Middle Python Developer"), None, now)
+    b, new = upsert_job(conn, mk(source="habr", source_id="2", title="Senior Python Developer"),
+                        None, now)
+    assert new and a != b
+
+
+def test_compatible_row_found_among_same_key(conn, now):
+    a, _ = upsert_job(conn, mk(source="hh", source_id="1", title="Middle Python Developer"), None, now)
+    b, _ = upsert_job(conn, mk(source="hh", source_id="2", title="Senior Python Developer"), None, now)
+    c, new = upsert_job(conn, mk(source="habr", source_id="3", title="Python Developer (Senior)"),
+                        None, now)
+    assert not new and c == b
