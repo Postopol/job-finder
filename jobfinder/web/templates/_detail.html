@@ -50,8 +50,11 @@
       action="/jobs/{{ job.id }}/status" method="post"
       hx-post="/jobs/{{ job.id }}/status" hx-target="#detail" hx-swap="innerHTML">
   <span class="label mute">Мой статус</span>
+  {% set keys = {"interesting": "→", "rejected": "←", "applied": "A"} %}
+  {% set aria = {"interesting": "ArrowRight", "rejected": "ArrowLeft", "applied": "A"} %}
   {% for b in d.buttons %}
-  <button type="submit" name="status" value="{{ b.value }}" class="qz-tab" aria-pressed="{{ 'true' if b.pressed else 'false' }}">{{ b.label }}</button>
+  <button type="submit" name="status" value="{{ b.value }}" class="qz-tab" aria-pressed="{{ 'true' if b.pressed else 'false' }}"
+          {% if keys[b.value] %}aria-keyshortcuts="{{ aria[b.value] }}"{% endif %}>{{ b.label }}{% if keys[b.value] %}<span class="key-label" aria-hidden="true"><kbd>{{ keys[b.value] }}</kbd></span>{% endif %}</button>
   {% endfor %}
 </form>
 

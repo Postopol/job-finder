@@ -7,7 +7,7 @@
 </div>
 <div class="job-items">
   {% for it in items %}
-  <a class="job-item{% if it.id == f.job %} is-selected{% endif %}" href="{{ it.url }}"
+  <a class="job-item{% if it.id == f.job %} is-selected{% endif %}" href="{{ it.url }}" data-job-id="{{ it.id }}"
      hx-get="/jobs/{{ it.id }}" hx-target="#detail" hx-swap="innerHTML" hx-push-url="{{ it.url }}">
     <span class="job-item__top">
       <span class="job-item__title">{{ it.title }}</span>
