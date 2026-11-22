@@ -166,6 +166,9 @@ def test_hirify_mapping():
     assert r.salary_period == "month"
     assert hirify.SOURCE.parse_item({**glob, "grades": [{"name": "middle"}, {"name": "senior"}]}).seniority == "senior"
     assert hirify.SOURCE.parse_item({**glob, "work_format": ["hybrid"]}).work_format == "hybrid"
+    # Hirify hides some companies behind an unfilled template placeholder
+    assert hirify.SOURCE.parse_item({**glob, "company_title": "%hirify_global%"}).company is None
+    assert hirify.SOURCE.parse_item({**glob, "company_title": "Acme"}).company == "Acme"
 
 
 def test_hirify_demo_vacancy_dropped():

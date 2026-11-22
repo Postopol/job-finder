@@ -155,3 +155,24 @@ def test_non_it_russian_titles(title, expected):
 ])
 def test_region_limited_remote_is_restricted(loc, scope):
     assert classify_scope(mk(location_raw=loc, remote_scope="unknown"), "KZ")[0] == scope
+
+
+@pytest.mark.parametrize("title", [
+    "Инженер-конструктор корпусной мебели (Базис-Мебельщик)", "Конструктор корпусной мебели",
+    "Дизайнер-консультант по мебели",
+    "Ведущий дизайнер e-commerce / арт-директор (баннеры и карточки маркетплейсов)",
+    "Специалист поддержки", "Специалист технической поддержки (Helpdesk)",
+    "Менеджер по развитию и продвижению кабинета Ozon", "Руководитель партнерской программы",
+    "Swedish Voice Actor - AI Trainer", "Chemistry Specialist (Fluent in Egyptian Arabic) - AI Trainer",
+    "Procurement Specialist"])
+def test_non_it_titles_seen_in_feed(title):
+    assert is_non_it_title(title) is True
+
+
+@pytest.mark.parametrize("title", [
+    "Разработчик конструктора сайтов", "Frontend-разработчик (мебельный конфигуратор)",
+    "Python-разработчик (поддержка legacy)", "Инженер технической поддержки Linux",
+    "Software Engineer, AI Trainer Platform", "Procurement Platform Engineer",
+    "Backend-разработчик партнерской программы"])
+def test_new_domain_words_keep_it_titles(title):
+    assert is_non_it_title(title) is False

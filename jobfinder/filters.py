@@ -133,7 +133,7 @@ NON_IT_ROLE_WORDS = [
     "office manager", "nurse", "therapist", "physician", "teacher", "accountant",
     # Russian; a trailing * matches any ending («маркетолог*» → «маркетологом»)
     "маркетолог*", "бухгалтер*", "рекрутер*", "менеджер* по работе с клиентами",
-    "по развитию бизнеса",
+    "по развитию бизнеса", "арт-директор*",
 ]
 # Domain words: non-IT only when the title has no strong IT noun
 # ("Medical Software Engineer" stays, "Medical Billing Specialist" goes).
@@ -142,7 +142,10 @@ NON_IT_DOMAIN_WORDS = [
     "talent", "people partner", "clinical", "medical", "tutor", "operations manager",
     "compensation", "internal controls", "sox", "media specialist", "support engineer",
     "solutions engineer", "solutions consultant",
+    "voice actor", "ai trainer", "procurement",
     "продаж*",  # «Менеджер по продажам» goes, «Разработчик CRM для отдела продаж» stays
+    # hh employers file furniture design under the IT role «Дизайнер, художник»
+    "мебел*", "конструктор*", "поддержк*", "продвижени*", "партнерск*", "партнёрск*",
 ]
 
 

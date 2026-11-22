@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html as _html
 import logging
+import re
 
 from ..http import PoliteClient, SourceError
 from ..models import Job
@@ -19,6 +20,8 @@ LIST_PATH = ("data", "feed-fetch-service", "data")
 _GRADES = {"intern": 1, "junior": 1, "middle": 2, "senior": 3, "lead": 4, "principal": 4}
 _LEVELS = {1: "junior", 2: "middle", 3: "senior", 4: "lead"}
 _PERIODS = {"month": "month", "year": "year", "hour": "hour"}
+# Hirify hides some companies behind an unfilled template placeholder: "%hirify_global%"
+_PLACEHOLDER = re.compile(r"^%\w+%$")
 
 
 def parse_payload(page_html: str) -> list[dict]:
@@ -53,6 +56,11 @@ def _scope(item: dict) -> tuple[str, list[str]]:
     return ("countries", codes) if codes else ("unknown", [])
 
 
+def _company(value) -> str | None:
+    name = str(value).strip() if value else ""
+    return name if name and not _PLACEHOLDER.match(name) else None
+
+
 def _amount(v) -> int | None:
     return int(v) if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0 else None
 
@@ -79,7 +87,7 @@ class Hirify(Source):
         tags = [str(t.get("name")) for t in item.get("tags") or [] if isinstance(t, dict) and t.get("name")]
         return Job(
             source=self.name, source_id=str(item["id"]), url=JOB_URL.format(slug=slug), title=title,
-            company=item.get("company_title"), lang=self.lang,
+            company=_company(item.get("company_title")), lang=self.lang,
             description_html=f"<p>{_html.escape(tldr)}</p>" if tldr else "", description_text=tldr,
             salary_min=lo, salary_max=hi,
             salary_currency=sal.get("currency") if has_salary else None,
