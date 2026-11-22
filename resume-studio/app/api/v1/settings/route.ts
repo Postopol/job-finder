@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import {
   PROVIDERS,
+  SettingsError,
   clearLLMApiKey,
   getRedactedLLMSettings,
   saveLLMSettings,
@@ -35,11 +36,19 @@ export async function PUT(request: NextRequest) {
   }
   const { provider, model, baseUrl, apiKey, clearApiKey } = parsed.data;
   if (clearApiKey) clearLLMApiKey();
-  saveLLMSettings({
-    provider,
-    model,
-    baseUrl: baseUrl || undefined,
-    apiKey: apiKey || undefined,
-  });
-  return NextResponse.json({ data: getRedactedLLMSettings() });
+  let keyDropped = false;
+  try {
+    ({ keyDropped } = saveLLMSettings({
+      provider,
+      model,
+      baseUrl: baseUrl || undefined,
+      apiKey: apiKey || undefined,
+    }));
+  } catch (e) {
+    if (e instanceof SettingsError) {
+      return NextResponse.json({ error: e.message }, { status: 400 });
+    }
+    throw e;
+  }
+  return NextResponse.json({ data: getRedactedLLMSettings(), keyDropped });
 }

@@ -7,7 +7,8 @@ import { ArrowLeft, CheckCircle2, Loader2, XCircle } from "lucide-react";
 interface SettingsData {
   provider: string;
   model: string;
-  baseUrl: string;
+  baseUrl: string; // explicit override only
+  defaultBaseUrl: string;
   hasApiKey: boolean;
   apiKeyFromEnv: boolean;
   providerFromEnv: boolean;
@@ -67,8 +68,13 @@ export default function SettingsPage() {
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? "Save failed");
       setData(body.data);
+      setBaseUrl(body.data.baseUrl);
       setApiKey("");
-      setMessage({ kind: "ok", text: "Settings saved." });
+      setMessage(
+        body.keyDropped
+          ? { kind: "err", text: "Settings saved. The saved API key was removed: it belonged to another provider or endpoint — enter the key for this one." }
+          : { kind: "ok", text: "Settings saved." },
+      );
     } catch (e) {
       setMessage({ kind: "err", text: e instanceof Error ? e.message : "Save failed" });
     } finally {
@@ -107,6 +113,8 @@ export default function SettingsPage() {
   }
 
   const info = PROVIDER_INFO[provider] ?? PROVIDER_INFO.custom;
+  // The saved key stays tied to the provider and base URL it was saved with.
+  const baseUrlChanged = baseUrl.trim().replace(/\/$/, "") !== data.baseUrl;
   const inputCls =
     "w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--accent)] placeholder:text-[var(--muted)]";
 
@@ -135,7 +143,17 @@ export default function SettingsPage() {
       <div className="space-y-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
         <label className="block">
           <span className="mb-1.5 block text-xs font-medium text-[var(--muted)]">Provider</span>
-          <select className={inputCls} value={provider} onChange={(e) => setProvider(e.target.value)}>
+          <select
+            className={inputCls}
+            value={provider}
+            onChange={(e) => {
+              // A base URL or key typed for one provider must not carry over to another.
+              setProvider(e.target.value);
+              setBaseUrl("");
+              setApiKey("");
+              setTestResult(null);
+            }}
+          >
             {Object.entries(PROVIDER_INFO).map(([value, p]) => (
               <option key={value} value={value}>
                 {p.label}
@@ -165,7 +183,11 @@ export default function SettingsPage() {
             <input
               className={inputCls}
               value={baseUrl}
-              placeholder={info.baseUrlHint ?? "https://api.provider.com/v1"}
+              placeholder={
+                provider === data.provider && data.defaultBaseUrl
+                  ? data.defaultBaseUrl
+                  : (info.baseUrlHint ?? "https://api.provider.com/v1")
+              }
               onChange={(e) => setBaseUrl(e.target.value)}
             />
           </label>
@@ -181,7 +203,7 @@ export default function SettingsPage() {
               placeholder={
                 data.apiKeyFromEnv
                   ? "Set via LLM_API_KEY env"
-                  : data.hasApiKey
+                  : data.hasApiKey && provider === data.provider && !baseUrlChanged
                     ? "•••••••• (saved — leave blank to keep)"
                     : info.keyLabel
               }
@@ -191,6 +213,12 @@ export default function SettingsPage() {
             <span className="mt-1 block text-xs text-[var(--muted)]">
               Stored encrypted in your local database. Never sent anywhere except the provider.
             </span>
+            {data.hasApiKey && !data.apiKeyFromEnv && !apiKey && (provider !== data.provider || baseUrlChanged) ? (
+              <span className="mt-1 block text-xs text-amber-400">
+                The saved key belongs to {PROVIDER_INFO[data.provider]?.label ?? data.provider}
+                {data.baseUrl ? ` at ${data.baseUrl}` : ""}. Enter a key for this one — saving without it removes the saved key.
+              </span>
+            ) : null}
           </label>
         ) : null}
 

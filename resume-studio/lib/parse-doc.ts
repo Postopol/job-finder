@@ -72,10 +72,15 @@ export async function extractDocumentText(
     }
   }
 
-  // Collapse runaway blank lines, trim each line's trailing spaces.
+  // Size first, before any normalization pass touches the text.
+  if (text.length > MAX_TEXT_CHARS) {
+    throw new DocumentValidationError("Document text exceeds 1 MB.", 413);
+  }
+  // Collapse runaway blank lines, trim each line's trailing spaces (trimEnd is linear;
+  // a /[ \t]+$/ regex is quadratic on long runs of spaces inside a line).
   text = text
     .split("\n")
-    .map((line) => line.replace(/[ \t]+$/g, ""))
+    .map((line) => line.trimEnd())
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();

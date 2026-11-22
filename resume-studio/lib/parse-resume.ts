@@ -103,6 +103,13 @@ const SKILL_SEPARATOR_RE = /[,;|•·]| \/ /;
 const SKILL_HEADING_RE =
   /^(technical\s+)?(skills?|technologies|tech stack|competencies|tools)\b/i;
 
+/** Drops trailing ":", "*" and "#" with a backwards scan (a /[:*#]+$/ regex is quadratic). */
+function stripTrailingMarks(line: string): string {
+  let end = line.length;
+  while (end > 0 && ":*#".includes(line[end - 1])) end--;
+  return line.slice(0, end);
+}
+
 function restoreSkills(resume: ResumeData, markdown: string): ResumeData {
   const lines = markdown.split("\n");
   const markdownSkills: string[] = [];
@@ -116,7 +123,7 @@ function restoreSkills(resume: ResumeData, markdown: string): ResumeData {
       continue;
     }
     blankSeen = 0;
-    const headingMatch = trimmed.replace(/[:*#]+$/g, "").match(SKILL_HEADING_RE);
+    const headingMatch = stripTrailingMarks(trimmed).match(SKILL_HEADING_RE);
     if (headingMatch) {
       inSkillsSection = true;
       const rest = trimmed.replace(/^[^:]*:/, "");
