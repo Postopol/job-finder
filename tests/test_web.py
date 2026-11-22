@@ -620,3 +620,52 @@ def test_no_warning_when_source_had_nothing_to_look_at(client, conn):
 def test_toggle_keeps_quality_line(client, conn):
     seed(conn, source="remoteok", title="Go Developer")
     assert "без зарплаты 100%" in client.post("/sources/remoteok/toggle").text
+
+
+# --- profile -----------------------------------------------------------------
+
+def test_profile_page_without_resume(client):
+    html = client.get("/profile").text
+    assert "Резюме ещё не загружено" in html and 'href="/profile"' in html
+    assert "http://127.0.0.1:3000" in html
+
+
+def _fake_refresh(conn, now, transport=None):
+    snap = {"resume_id": "m", "filename": "sample-resume.pdf", "is_sample": True,
+            "updated_at": None, "fetched_at": now.isoformat(),
+            "profile": {"title": "Senior Backend Engineer", "roles": ["Backend Engineer"],
+                        "skills": ["Go", "Kubernetes"], "years": 9.4, "languages": ["English"]}}
+    set_setting(conn, "resume", snap)
+    return snap
+
+
+def test_profile_refresh_shows_profile_and_sample_warning(client, conn, monkeypatch):
+    from jobfinder import profile
+    monkeypatch.setattr(profile, "refresh", _fake_refresh)
+    html = client.post("/profile/refresh", data={"resume_studio_url": "http://localhost:3001/"}).text
+    assert "Резюме обновлено" in html and "Senior Backend Engineer" in html
+    assert "9.4 года" in html and "Kubernetes" in html and "Это пример из Resume Studio" in html
+    assert get_setting(conn, "resume_studio_url") == "http://localhost:3001"
+
+
+def test_profile_refresh_error_and_bad_url(client, conn, monkeypatch):
+    from jobfinder import profile
+
+    def down(conn, now, transport=None):
+        raise profile.ResumeUnavailable("Resume Studio не отвечает")
+    monkeypatch.setattr(profile, "refresh", down)
+    assert "Resume Studio не отвечает" in client.post("/profile/refresh").text
+    r = client.post("/profile/refresh", data={"resume_studio_url": "javascript:alert(1)"})
+    assert r.status_code == 422 and get_setting(conn, "resume_studio_url") == "http://127.0.0.1:3000"
+
+
+def test_profile_refresh_csrf(client):
+    evil = {"origin": "https://evil.example"}
+    assert client.post("/profile/refresh", headers=evil).status_code == 403
+
+
+@pytest.mark.parametrize("n,word", [(1, "год"), (2, "года"), (5, "лет"), (11, "лет"), (21, "год"),
+                                    (9.4, "года"), (12, "лет"), (22, "года")])
+def test_years_word(n, word):
+    from jobfinder.web.app import years_word
+    assert years_word(n) == word

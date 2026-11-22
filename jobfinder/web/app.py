@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup, escape
 
-from .. import archive, collector, db, halal, scheduler
+from .. import archive, collector, db, halal, profile, scheduler
 from ..models import STATUSES
 from ..search import SECTIONS, SearchParams, count_sections, search_jobs
 from ..sources import REGISTRY, telegram
@@ -520,6 +520,29 @@ def _settings_context(conn: sqlite3.Connection, form: dict | None = None,
             "errors": errors or [], "saved": saved}
 
 
+def years_word(n: float) -> str:
+    """«год/года/лет» after a number of years; a fraction takes «года» (9.4 года)."""
+    if n != int(n):
+        return "года"
+    n = int(n)
+    if n % 10 == 1 and n % 100 != 11:
+        return "год"
+    return "года" if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14) else "лет"
+
+
+def _profile_context(conn: sqlite3.Connection, now: datetime, **extra) -> dict:
+    snap = db.get_setting(conn, "resume")
+    p = (snap or {}).get("profile") or {}
+    return {"active": "profile", "snap": snap, "p": p,
+            "fetched_ago": ago(snap.get("fetched_at"), now) if snap else "",
+            "years_word": years_word(p["years"]) if p.get("years") is not None else "",
+            "rs_url": db.get_setting(conn, "resume_studio_url"), "error": None, "saved": False,
+            **extra}
+
+
+_URL_RE = re.compile(r"^https?://[^\s/]+(?::\d+)?/?$")
+
+
 # --- app ---------------------------------------------------------------------
 
 def create_app(db_path: Path | str, start_scheduler: bool = True,
@@ -697,6 +720,33 @@ def create_app(db_path: Path | str, start_scheduler: bool = True,
             return RedirectResponse("/sources", status_code=303)
         return templates.TemplateResponse(request, "_settings.html",
                                           _settings_context(conn, saved=True))
+
+    # --- profile ---
+
+    @app.get("/profile", response_class=HTMLResponse)
+    def profile_page(request: Request, conn: sqlite3.Connection = Depends(get_conn)):
+        return templates.TemplateResponse(request, "profile.html",
+                                          _profile_context(conn, datetime.now(UTC)))
+
+    @app.post("/profile/refresh", response_class=HTMLResponse,
+              dependencies=[Depends(require_same_origin)])
+    def profile_refresh(request: Request, resume_studio_url: str | None = Form(None),
+                        conn: sqlite3.Connection = Depends(get_conn)):
+        now = datetime.now(UTC)
+        url = (resume_studio_url or "").strip()
+        if url and not _URL_RE.match(url):
+            return templates.TemplateResponse(
+                request, "profile.html", _profile_context(
+                    conn, now, error="Адрес нужен вида http://127.0.0.1:3000"), status_code=422)
+        if url:
+            db.set_setting(conn, "resume_studio_url", url.rstrip("/"))
+        try:
+            profile.refresh(conn, now)
+        except profile.ResumeUnavailable as e:
+            return templates.TemplateResponse(request, "profile.html",
+                                              _profile_context(conn, now, error=str(e)))
+        return templates.TemplateResponse(request, "profile.html",
+                                          _profile_context(conn, now, saved=True))
 
     @app.post("/collect", response_class=HTMLResponse,
               dependencies=[Depends(require_same_origin)])

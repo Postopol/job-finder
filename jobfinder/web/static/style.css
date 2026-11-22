@@ -288,3 +288,9 @@ legend.label { margin-bottom: var(--space-2); }
 @media (max-width: 640px) {
   .sources-page { padding: var(--space-4); }
 }
+
+/* profile */
+.profile { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); }
+.profile__facts { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-2) var(--space-6); margin: 0; }
+.profile__facts dt { color: var(--ink-mute); font-size: 13px; }
+.profile__facts dd { margin: 0; }

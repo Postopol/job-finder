@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Job Finder — профиль{% endblock %}
+{% block header_meta %}{% endblock %}
+{% block content %}
+<div class="sources-page profile-page">
+  <section class="profile" aria-labelledby="profile-title">
+    <h1 id="profile-title" class="page-title">Профиль</h1>
+    <p class="small mute">Из резюме в Resume Studio. Имя и контакты сюда не копируются.</p>
+
+    {% if error %}<div class="form-errors" role="alert"><p>{{ error }}</p></div>{% endif %}
+    {% if saved %}<p class="form-saved" role="status">Резюме обновлено</p>{% endif %}
+
+    {% if snap %}
+      <p class="mid">Резюме «{{ snap.filename or snap.resume_id }}» · взято {{ fetched_ago }}</p>
+      {% if snap.is_sample %}
+      <div class="form-errors" role="alert"><p>Это пример из Resume Studio, а не твоё резюме. Загрузи своё резюме в Resume Studio и нажми «Обновить».</p></div>
+      {% endif %}
+      <dl class="profile__facts">
+        <dt>Должность</dt><dd>{{ p.title or "не указана" }}</dd>
+        <dt>Опыт</dt><dd>{% if p.years is not none %}{{ p.years }} {{ years_word }}{% else %}не удалось посчитать по датам{% endif %}</dd>
+        <dt>Прошлые должности</dt><dd>{{ p.roles | join(", ") or "—" }}</dd>
+        <dt>Языки</dt><dd>{{ p.languages | join(", ") or "—" }}</dd>
+      </dl>
+      <h2 class="section-title">Навыки · {{ p.skills | length }}</h2>
+      <div class="chips">{% for s in p.skills %}<span class="tag">{{ s }}</span>{% else %}<span class="mute">нет</span>{% endfor %}</div>
+    {% else %}
+      <p class="mid">Резюме ещё не загружено. Запусти Resume Studio, загрузи туда резюме и нажми «Обновить из Resume Studio».</p>
+    {% endif %}
+  </section>
+
+  <aside class="qz-hud settings" aria-labelledby="rs-title">
+    <form class="settings__form" action="/profile/refresh" method="post">
+      <h2 id="rs-title" class="section-title">Resume Studio</h2>
+      <div class="field">
+        <label class="field__label" for="resume_studio_url">Адрес Resume Studio</label>
+        <input id="resume_studio_url" name="resume_studio_url" type="url" required value="{{ rs_url }}">
+        <p class="note">Резюме также обновляется само перед каждым автоматическим сбором, если Resume Studio запущен.</p>
+      </div>
+      <button type="submit" class="qz-btn qz-btn--primary">Обновить из Resume Studio</button>
+    </form>
+  </aside>
+</div>
+{% endblock %}

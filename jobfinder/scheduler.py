@@ -8,7 +8,7 @@ from pathlib import Path
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from . import archive, collector, db
+from . import archive, collector, db, profile
 
 log = logging.getLogger(__name__)
 
@@ -21,6 +21,7 @@ def run_collect(db_path: Path | str) -> None:
     conn = None
     try:
         conn = db.connect(db_path)
+        profile.refresh_quietly(conn, datetime.now(UTC))  # Resume Studio may be stopped
         results = collector.collect(conn)
         if not results:
             log.info("сбор пропущен: уже идёт или все источники выключены")

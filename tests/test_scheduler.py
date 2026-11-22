@@ -47,6 +47,7 @@ def test_jobs_never_raise(tmp_path, monkeypatch, caplog):
         raise RuntimeError("kaput")
     monkeypatch.setattr(scheduler.collector, "collect", boom)
     monkeypatch.setattr(scheduler.archive, "archive_stale", boom)
+    monkeypatch.setattr(scheduler.profile, "refresh", boom)
     scheduler.run_collect(tmp_path / "j.db")
     scheduler.run_maintenance(tmp_path / "j.db")
     assert "kaput" in caplog.text
@@ -59,3 +60,12 @@ def test_maintenance_runs_archive_and_purge(tmp_path, monkeypatch):
     monkeypatch.setattr(scheduler.archive, "purge_raw", lambda conn, now: calls.append("p") or 0)
     scheduler.run_maintenance(tmp_path / "j.db")
     assert calls == ["a", "p"]
+
+
+def test_collect_refreshes_resume_first(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(scheduler.profile, "refresh_quietly",
+                        lambda conn, now: calls.append("resume") or True)
+    monkeypatch.setattr(scheduler.collector, "collect", lambda conn: calls.append("collect") or [])
+    scheduler.run_collect(tmp_path / "j.db")
+    assert calls == ["resume", "collect"]

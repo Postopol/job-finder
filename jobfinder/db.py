@@ -17,6 +17,7 @@ DEFAULT_SETTINGS = {
     "country": "KZ", "interval_hours": 6, "max_pages": 5, "fresh_days": 3,
     "archive_days": 7, "purge_days": 90, "stopwords": [], "hh_token": "",
     "disabled_sources": [], "halal": True,
+    "resume_studio_url": "http://127.0.0.1:3000", "resume": None,
     # public channels read via t.me/s/ (checked 2026-11-22: alive, mostly vacancies)
     "tg_channels": ["opento_dev", "opento_data", "pythonrabota", "devops_jobs_feed", "jobforqa",
                     "datasciencejobs", "analytics_jobs", "product_jobs"],
