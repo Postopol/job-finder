@@ -4,17 +4,31 @@
 
 Источники: Himalayas, RemoteOK, Jobicy, Working Nomads, We Work Remotely, Remote First Jobs, Hacker News «Who is hiring», Arc.dev, Remote Rocketship, Hirify, hh.ru, Хабр Карьера, Getmatch.
 
-## Что нужно
+## Установка
 
-- [uv](https://docs.astral.sh/uv/). Нужный Python uv поставит сам.
-- Интернет для сбора. Всё остальное работает без него.
+Linux или macOS, нужны `git` и `curl`. Скопируй в терминал:
 
-## Установка и запуск
-
+```bash
+curl -LsSf https://raw.githubusercontent.com/Postopol/job-finder/main/install.sh | bash
 ```
-uv sync
-uv run jobfinder serve
+
+Скрипт поставит [uv](https://docs.astral.sh/uv/) (если его нет), скачает программу в `~/job-finder`, поставит зависимости и создаст команду `jobfinder`. Другая папка: `... | JOBFINDER_DIR=~/apps/job-finder bash`.
+
+## Обновление
+
+```bash
+curl -LsSf https://raw.githubusercontent.com/Postopol/job-finder/main/update.sh | bash
 ```
+
+База, статусы и настройки остаются. Если сервер был запущен, перезапусти его.
+
+## Запуск
+
+```bash
+jobfinder serve
+```
+
+Если ставил вручную из клона: `uv sync`, потом `uv run jobfinder serve`. Интернет нужен только для сбора.
 
 Открой http://127.0.0.1:8000. Сервер слушает только этот компьютер.
 
