@@ -163,7 +163,6 @@ def test_region_limited_remote_is_restricted(loc, scope):
     "Ведущий дизайнер e-commerce / арт-директор (баннеры и карточки маркетплейсов)",
     "Специалист поддержки", "Специалист технической поддержки (Helpdesk)",
     "Менеджер по развитию и продвижению кабинета Ozon", "Руководитель партнерской программы",
-    "Swedish Voice Actor - AI Trainer", "Chemistry Specialist (Fluent in Egyptian Arabic) - AI Trainer",
     "Procurement Specialist"])
 def test_non_it_titles_seen_in_feed(title):
     assert is_non_it_title(title) is True
@@ -172,7 +171,14 @@ def test_non_it_titles_seen_in_feed(title):
 @pytest.mark.parametrize("title", [
     "Разработчик конструктора сайтов", "Frontend-разработчик (мебельный конфигуратор)",
     "Python-разработчик (поддержка legacy)", "Инженер технической поддержки Linux",
-    "Software Engineer, AI Trainer Platform", "Procurement Platform Engineer",
+    "Procurement Platform Engineer",
     "Backend-разработчик партнерской программы"])
 def test_new_domain_words_keep_it_titles(title):
+    assert is_non_it_title(title) is False
+
+
+@pytest.mark.parametrize("title", [
+    "Swedish Voice Actor - AI Trainer", "Chemistry Specialist (Fluent in Egyptian Arabic) - AI Trainer",
+    "Kyrgyz Language Specialist - Freelance AI Trainer Project"])
+def test_ai_trainer_gigs_stay_visible(title):  # the user wants side gigs in the feed
     assert is_non_it_title(title) is False

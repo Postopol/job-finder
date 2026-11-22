@@ -142,7 +142,7 @@ NON_IT_DOMAIN_WORDS = [
     "talent", "people partner", "clinical", "medical", "tutor", "operations manager",
     "compensation", "internal controls", "sox", "media specialist", "support engineer",
     "solutions engineer", "solutions consultant",
-    "voice actor", "ai trainer", "procurement",
+    "procurement",
     "продаж*",  # «Менеджер по продажам» goes, «Разработчик CRM для отдела продаж» stays
     # hh employers file furniture design under the IT role «Дизайнер, художник»
     "мебел*", "конструктор*", "поддержк*", "продвижени*", "партнерск*", "партнёрск*",
