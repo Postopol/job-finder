@@ -1,0 +1,46 @@
+# Resume Studio
+
+Local-first AI resume builder — a reimplementation of Resume-Matcher's core loop (see `ARCHITECTURE.md`) as a single Next.js app.
+
+**Current scope (steps 1–2):** master resume ingestion (PDF/DOCX/paste) → LLM parse into a structured schema → visual builder with live preview and 2 templates → pixel-identical PDF export via headless Chromium. JD Match: paste job descriptions, LLM keyword extraction (cached by content hash), deterministic ATS score (keyword match, skills coverage, title match, section completeness, date consistency) and a highlighted keyword view. Multi-provider AI (OpenAI, Anthropic, Gemini, DeepSeek, OpenRouter, Groq, Ollama, any OpenAI-compatible endpoint), keys encrypted at rest, everything stored in a local SQLite file.
+
+## Run
+
+```bash
+npm install
+npx playwright install chromium   # only if no Playwright browser is present
+npm run dev                       # http://localhost:3000
+```
+
+Then open **Settings**, pick a provider (or point it at a local Ollama), and upload your resume.
+
+## Scripts
+
+| Command | Purpose |
+|---|---|
+| `npm run dev` / `build` / `start` | usual Next.js lifecycle |
+| `npm run typecheck` / `lint` | tsc / oxlint |
+| `npm run mock-llm` | mock OpenAI-compatible server on :8787 for e2e testing without an API key |
+| `npm run sample:resume` | generates `data/sample-resume.pdf` for upload testing |
+
+## Environment
+
+See `.env.example`. Env vars (`LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY`, `LLM_API_BASE`) override Settings-UI values; `DATA_DIR` moves the SQLite database.
+
+## Layout
+
+```
+lib/            schema (zod), db (SQLite facade), crypto, settings, llm,
+                parse-doc, parse-resume (+repairs), pdf-render (Playwright),
+                ats (deterministic scoring), text-match, tailor/keywords
+                (JD extraction + hash cache)
+app/api/v1/     health, settings, resumes CRUD, upload, retry, pdf,
+                jobs CRUD, ats (score resume × job)
+app/builder/    two-pane editor + live preview
+app/match/      JD Match — paste a JD, ATS score + keyword highlighting
+app/print/      Chromium-printed PDF route (token-gated)
+components/     resume templates (classic/modern), builder editors,
+                match score card + highlighted resume view
+```
+
+Roadmap (steps 3–7 in `ARCHITECTURE.md` §10.4): diff-based tailoring with review/confirm, tracker, refinement loops, queue, MCP.
