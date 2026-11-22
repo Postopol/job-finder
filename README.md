@@ -14,6 +14,13 @@ curl -LsSf https://raw.githubusercontent.com/Postopol/job-finder/main/install.sh
 
 Скрипт поставит [uv](https://docs.astral.sh/uv/) (если его нет), скачает программу в `~/job-finder`, поставит зависимости и создаст команду `jobfinder`. Другая папка: `... | JOBFINDER_DIR=~/apps/job-finder bash`.
 
+Скрипт спросит, что ставить:
+
+- **1 — только Job Finder** (сбор вакансий);
+- **2 — Job Finder + Resume Studio** — приложение для резюме из папки `resume-studio/`: загрузка и разбор резюме, редактор, PDF, сравнение резюме с вакансией. Job Finder берёт из него резюме для «Профиля». Нужен Node.js 20.9 или новее; скрипт соберёт приложение и создаст команду `resume-studio` (открывается на http://127.0.0.1:3000).
+
+Без вопроса: `... | JOBFINDER_WITH_RESUME_STUDIO=1 bash` (или `=0`). Выбор запоминается: обновление пересобирает Resume Studio, только если он стоит. Поставить его позже — запусти установку снова с `JOBFINDER_WITH_RESUME_STUDIO=1`.
+
 ## Обновление
 
 ```bash

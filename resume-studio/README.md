@@ -4,6 +4,8 @@ Local-first AI resume builder — a reimplementation of Resume-Matcher's core lo
 
 **Current scope (steps 1–2):** master resume ingestion (PDF/DOCX/paste) → LLM parse into a structured schema → visual builder with live preview and 2 templates → pixel-identical PDF export via headless Chromium. JD Match: paste job descriptions, LLM keyword extraction (cached by content hash), deterministic ATS score (keyword match, skills coverage, title match, section completeness, date consistency) and a highlighted keyword view. Multi-provider AI (OpenAI, Anthropic, Gemini, DeepSeek, OpenRouter, Groq, Ollama, any OpenAI-compatible endpoint), keys encrypted at rest, everything stored in a local SQLite file.
 
+Based on Resume Matcher (Apache-2.0) — see `NOTICE.md`. Part of the Job Finder repository: Job Finder reads the master resume from this app over its API.
+
 ## Run
 
 ```bash

@@ -29,6 +29,13 @@ fi
 say "Обновляю зависимости"
 uv sync --project "$DIR" --no-dev
 
+if [ "$(cat "$DIR/.install-choice" 2>/dev/null)" = 1 ] \
+   && ! git -C "$DIR" diff --quiet "$old" "$new" -- resume-studio; then
+  say "Пересобираю Resume Studio"
+  (cd "$DIR/resume-studio" && npm ci --no-audit --no-fund && npm run build) \
+    || echo "Resume Studio не пересобрался. Повтори: cd $DIR/resume-studio && npm ci && npm run build"
+fi
+
 if [ -f "$DIR/data/jobs.db" ]; then
   say "Пересчитываю собранные вакансии по новым правилам"
   uv run --project "$DIR" --no-dev jobfinder reparse \
@@ -37,4 +44,4 @@ fi
 
 say "Обновлено: $old → $new"
 git -C "$DIR" log --oneline "$old..$new" | sed 's/^/  /'
-echo "Если сервер запущен, перезапусти его: Ctrl+C и снова jobfinder serve"
+echo "Если сервер запущен, перезапусти его: Ctrl+C и снова jobfinder serve (и resume-studio, если он стоит)"
