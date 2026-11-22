@@ -21,12 +21,26 @@ export async function POST(request: NextRequest) {
   }
 
   const current = getLLMSettings();
+  const provider = (override?.provider as typeof current.provider) ?? current.provider;
+  const baseUrl = override?.baseUrl ?? current.baseUrl;
+  // The stored key goes only where it was saved for: a test against another provider or
+  // endpoint must bring its own key, otherwise the key could be sent to any URL.
+  const sameTarget = provider === current.provider && baseUrl === current.baseUrl;
+  if (override && !override.apiKey && !sameTarget && current.apiKey) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Enter the API key to test a different provider or base URL — the saved key is only sent to the endpoint it was saved for.",
+      },
+      { status: 400 },
+    );
+  }
   const settings = override
     ? {
-        provider: (override.provider as typeof current.provider) ?? current.provider,
+        provider,
         model: override.model ?? current.model,
-        baseUrl: override.baseUrl ?? current.baseUrl,
-        apiKey: override.apiKey ?? current.apiKey,
+        baseUrl,
+        apiKey: override.apiKey ?? (sameTarget ? current.apiKey : undefined),
       }
     : current;
 

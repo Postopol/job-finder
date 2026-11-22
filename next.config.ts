@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   // otherwise Next 16 blocks the HMR websocket as cross-origin and
   // client-side hydration never completes on those hosts.
   allowedDevOrigins: ["127.0.0.1", "localhost"],
+  // proxy.ts buffers request bodies; keep room for a 10 MB resume upload plus multipart overhead
+  experimental: { proxyClientMaxBodySize: "12mb" },
 };
 
 export default nextConfig;

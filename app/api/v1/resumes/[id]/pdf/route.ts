@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getResume } from "@/lib/db";
 import { DEFAULT_TEMPLATE_SETTINGS } from "@/lib/schema";
 import { PDFRenderError, renderResumePdf } from "@/lib/pdf-render";
+import { isLoopbackHost } from "@/lib/local-only";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -17,9 +18,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   const settings = resume.template_settings ?? DEFAULT_TEMPLATE_SETTINGS;
+  // The headless browser opens this origin: never let a request header point it elsewhere
+  // (proxy.ts already refuses non-local hosts; this keeps the route safe on its own).
+  const origin = request.nextUrl.origin;
+  if (!isLoopbackHost(new URL(origin).host)) {
+    return NextResponse.json({ error: "PDF export works only on this computer." }, { status: 403 });
+  }
   try {
     const pdf = await renderResumePdf({
-      origin: request.nextUrl.origin,
+      origin,
       resumeId: id,
       settings,
     });

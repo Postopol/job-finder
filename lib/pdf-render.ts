@@ -110,6 +110,18 @@ export async function renderResumePdf(options: {
     try {
       const page = await context.newPage();
       page.setDefaultTimeout(PAGE_TIMEOUT_MS);
+      // The print page needs nothing from other origins: refuse anything that leaves it.
+      const printOrigin = new URL(url).origin;
+      await page.route("**/*", (route) => {
+        const target = route.request().url();
+        if (target.startsWith("data:") || target.startsWith("blob:")) return route.continue();
+        try {
+          if (new URL(target).origin === printOrigin) return route.continue();
+        } catch {
+          /* unparsable URL: refuse below */
+        }
+        return route.abort();
+      });
       const response = await page.goto(url, { waitUntil: "networkidle" });
       if (!response || !response.ok()) {
         throw new PDFRenderError(

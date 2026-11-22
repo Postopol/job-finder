@@ -14,6 +14,10 @@ npm run dev                       # http://localhost:3000
 
 Then open **Settings**, pick a provider (or point it at a local Ollama), and upload your resume.
 
+## Local-only by design
+
+Resume Studio answers only this computer: the dev and production servers bind to `127.0.0.1`, and `proxy.ts` refuses API and print requests whose `Host` is not loopback (other machines, DNS rebinding) and state-changing requests from other sites (foreign `Origin` or `Sec-Fetch-Site: cross-site`). Requests without those headers — curl, Job Finder server-to-server — pass. The saved API key is used by «Test connection» only for the provider and base URL it was saved for. The PDF printer's headless browser may load nothing outside the print page's own origin.
+
 ## Scripts
 
 | Command | Purpose |
